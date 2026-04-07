@@ -316,7 +316,51 @@ def flash(count):
 def status():
     """Query device status."""
     print("Requesting device status")
-    send_cmd(0x46)
+    ok, lines = _run_tivoo_cmd([TIVOO_CMD, "46"])
+    if not ok:
+        return
+
+    # Find the status response (command 0x46)
+    for line in lines:
+        if not line.startswith("RX:"):
+            continue
+        hex_str = line[3:].strip()
+        raw = bytes(int(b, 16) for b in hex_str.split())
+        # Packet: 01 [len_lo len_hi] 04 46 [payload...] [crc_lo crc_hi] 02
+        if len(raw) < 7 or raw[4] != 0x46:
+            continue
+        # Payload starts after "04 46 55" = indices 5 onward (0x55 is response marker)
+        d = raw[6:]  # skip 01 len_lo len_hi 04 46 55
+        if len(d) < 21:
+            continue
+
+        CLOCK_STYLES = {
+            0: "fullscreen", 1: "rainbow", 2: "boxed", 3: "square",
+            4: "fullscreen-inv", 5: "round", 6: "wide",
+        }
+        mode_names = {0: "clock", 1: "light"}
+        mode = d[0]
+        r1, g1, b1 = d[3], d[4], d[5]
+        brightness = d[6]
+        fmt_24h = d[8]
+        r2, g2, b2 = d[12], d[13], d[14]
+        style = d[15]
+        temp = d[16]
+        weather = d[17]
+        calendar = d[19]
+
+        print(f"  Mode:       {mode_names.get(mode, f'unknown({mode})')}")
+        print(f"  Brightness: {brightness}%")
+        print(f"  Clock:      style {style} ({CLOCK_STYLES.get(style, '?')}), {'24h' if fmt_24h else '12h'}")
+        print(f"  Color:      RGB({r2}, {g2}, {b2})")
+        flags = []
+        if weather: flags.append("weather")
+        if temp: flags.append("temp")
+        if calendar: flags.append("calendar")
+        print(f"  Display:    {', '.join(flags) if flags else 'none'}")
+        return
+
+    print("  No status response received")
 
 
 @cli.command()

@@ -31,7 +31,7 @@ clang -framework Foundation -framework IOBluetooth -o tivoo_cmd tivoo_cmd.m -fob
 
 # Basic commands
 python3 tivoo_macos.py brightness 50
-python3 tivoo_macos.py clock 1 --calendar
+python3 tivoo_macos.py clock 1
 python3 tivoo_macos.py preset heart
 python3 tivoo_macos.py text "Hello World" --color cyan
 python3 tivoo_macos.py image photo.png
@@ -54,7 +54,7 @@ Run `python3 tivoo_macos.py -h` for full help. Every subcommand supports `-h`.
 | `light <color>` | Light effect (color name or #RRGGBB) |
 | `off` / `on` | Turn screen off/on |
 | `image <path>` | Display image (--duration 12s, then restore clock) |
-| `text <text>` | Scrolling text (--loop 3, --speed, --size 8-16) |
+| `text <text>` | Scrolling text (--loop 3, --speed, --size 8-16, --font) |
 | `anim <path>` | Animation from directory or GIF (--loop 3, --delay) |
 | `preset [name]` | Preset pixel art (--duration 12s; no args = list all) |
 | `ai <prompt>` | AI-generated pixel art |

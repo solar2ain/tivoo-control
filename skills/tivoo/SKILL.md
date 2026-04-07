@@ -9,43 +9,24 @@ Control a Divoom Tivoo 16x16 pixel screen via Bluetooth.
 
 ## First-Time Setup
 
-Check if `TIVOO_DIR` env var or `~/.tivoo/` directory exists to determine if setup is complete.
+Check if the Bluetooth bridge binary `tivoo_cmd` exists in the skill's `scripts/` directory.
 
-### 1. Determine Install Directory
-
-Default: `~/.tivoo/`. Override with `TIVOO_DIR` env var.
-
-```bash
-mkdir -p ~/.tivoo
-```
-
-### 2. Copy Source Files
-
-Copy files from the `scripts/` directory to the install directory:
-
-```bash
-cp scripts/tivoo_macos.py ~/.tivoo/
-cp scripts/tivoo_cmd.m ~/.tivoo/
-cp scripts/presets.py ~/.tivoo/
-cp -r scripts/fonts ~/.tivoo/
-```
-
-### 3. Compile Bluetooth Tool
+### 1. Compile Bluetooth Tool
 
 The user must compile `tivoo_cmd` locally (binaries are not distributed for security):
 
 ```bash
-cd ~/.tivoo
+cd scripts/
 clang -framework Foundation -framework IOBluetooth -o tivoo_cmd tivoo_cmd.m -fobjc-arc
 ```
 
 Requires Xcode Command Line Tools. If not installed: `xcode-select --install`
 
-### 4. Configure Device MAC Address
+### 2. Configure Device MAC Address
 
-Default MAC is hardcoded as `11:75:58:8C:5B:0C`. For a different Tivoo device, edit the address in `tivoo_cmd.m` and recompile.
+Default MAC is hardcoded as `11:75:58:8C:5B:0C`. For a different Tivoo device, edit the address in `scripts/tivoo_cmd.m` and recompile.
 
-### 5. Install Python Dependencies
+### 3. Install Python Dependencies
 
 ```bash
 pip3 install click          # CLI framework (required)
@@ -53,7 +34,7 @@ pip3 install Pillow         # Image/animation/text (recommended)
 pip3 install anthropic      # AI pixel art (optional)
 ```
 
-### 6. macOS Bluetooth Permissions
+### 4. macOS Bluetooth Permissions
 
 On first run, macOS will prompt for Bluetooth access. Allow your terminal app (Terminal/iTerm/Warp) to access Bluetooth.
 
@@ -61,11 +42,10 @@ Check in: System Settings > Privacy & Security > Bluetooth
 
 ## Tool Path
 
-After installation, the tool is at `~/.tivoo/tivoo_macos.py`:
+The tool is at `scripts/tivoo_macos.py` relative to the skill directory:
 
 ```bash
-TIVOO="${TIVOO_DIR:-$HOME/.tivoo}/tivoo_macos.py"
-python3 "$TIVOO" <command>
+python3 scripts/tivoo_macos.py <command>
 ```
 
 ## Command Reference
@@ -73,7 +53,7 @@ python3 "$TIVOO" <command>
 | Command | Example | Description |
 |---------|---------|-------------|
 | `brightness <0-100>` | `brightness 50` | Set brightness |
-| `clock [style] [opts]` | `clock 1 --calendar` | Clock mode (style 0-6) |
+| `clock [style] [opts]` | `clock 1` | Clock mode (style 0-6) |
 | `light <color>` | `light #FF6600` | Light effect color |
 | `off` / `on` | `off` | Turn screen off/on |
 | `image <path>` | `image cat.png` | Send image (--duration 12) |
@@ -90,7 +70,7 @@ All commands support `-h` / `--help` for detailed options.
 
 ### Auto-Restore Clock
 
-By default, static commands (`image`, `preset`) display for 12 seconds then restore clock mode (`clock 1 --calendar`). Animation commands (`text`, `anim`, `send`) loop 3 times then restore.
+By default, static commands (`image`, `preset`) display for 12 seconds then restore clock mode (`clock 1`). Animation commands (`text`, `anim`, `send`) loop 3 times then restore.
 
 Use `--duration 0` or `--loop 0` for permanent display (no auto-restore).
 
@@ -105,10 +85,11 @@ Styles: 0=fullscreen, 1=rainbow, 2=boxed, 3=square, 4=fullscreen-inv, 5=round, 6
 ### Text Options
 
 ```
-text TEXT [--color white] [--bg black] [--speed 100] [--step 2] [--size 12] [--loop 3]
+text TEXT [--color white] [--bg black] [--speed 100] [--step 2] [--size 12] [--font unifont] [--loop 3]
 ```
 
-- `--size`: Font size 8-16 (uses Unifont pixel font)
+- `--size`: Font size 8-16 (uses Unifont pixel font by default)
+- `--font`: Font name (unifont, stheiti, hiragino, gothic, arial)
 - `--speed`: Scroll speed in ms per step
 - `--step`: Pixels to scroll per step (1-8)
 - `--loop`: Loop count, 0 = infinite
@@ -139,7 +120,7 @@ When the user wants custom patterns, generate pixel data inline:
 
 ```python
 import sys, os
-sys.path.insert(0, os.path.expanduser("~/.tivoo"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "scripts"))
 from tivoo_macos import build_image_frame, send_cmd
 
 B = (0, 0, 0)        # background
@@ -159,9 +140,9 @@ send_cmd(*payload)
 Or use preset patterns:
 
 ```bash
-python3 ~/.tivoo/tivoo_macos.py preset heart      # Heart
-python3 ~/.tivoo/tivoo_macos.py preset smiley     # Smiley
-python3 ~/.tivoo/tivoo_macos.py preset gradient   # Gradient test
+python3 scripts/tivoo_macos.py preset heart      # Heart
+python3 scripts/tivoo_macos.py preset smiley     # Smiley
+python3 scripts/tivoo_macos.py preset gradient   # Gradient test
 ```
 
 ## Protocol Extension

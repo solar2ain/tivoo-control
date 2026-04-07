@@ -46,6 +46,17 @@ COLORS = {
 
 LOG_FILE = os.path.join(SCRIPT_DIR, "tivoo.log")
 
+FONTS = {
+    "arial": ["/Library/Fonts/Arial Unicode.ttf"],
+    "unifont": [
+        os.path.join(SCRIPT_DIR, "fonts", "unifont.otf"),
+    ],
+    "stheiti": ["/System/Library/Fonts/STHeiti Medium.ttc"],
+    "hiragino": ["/System/Library/Fonts/Hiragino Sans GB.ttc"],
+    "gothic": ["/System/Library/Fonts/AppleSDGothicNeo.ttc"],
+}
+FONT_NAMES = list(FONTS.keys())
+
 
 # --- Communication Layer ---
 
@@ -118,20 +129,26 @@ def send_session(payloads, timeout=30):
 
 
 def _restore_clock():
-    """Switch back to default clock (style 1, calendar on)."""
+    """Switch back to default clock (style 1)."""
     time.sleep(1)
     r, g, b = parse_color("white")
-    print("  Restoring clock mode")
-    send_cmd(0x45, 0x00, 0x01, 0x01, 0x01, 0x00, 0x00, 0x01, r, g, b)
+    send_cmd(0x45, 0x00, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, r, g, b)
 
 
 def _wait_and_restore(duration_s):
-    """Wait then restore clock. duration_s=0 means stay forever."""
+    """Fork a background process to wait then restore clock. Returns immediately."""
     if duration_s <= 0:
         return
-    print(f"  Waiting {duration_s:.1f}s before restoring clock...")
-    time.sleep(duration_s)
-    _restore_clock()
+    pid = os.fork()
+    if pid == 0:
+        # Child process: detach, wait, restore, exit
+        os.setsid()
+        time.sleep(duration_s)
+        _restore_clock()
+        os._exit(0)
+    else:
+        print(f"  Will restore clock in {duration_s:.1f}s (background)")
+
 
 
 # --- Color Utilities ---
@@ -315,8 +332,51 @@ def flash(count):
 @cli.command()
 def status():
     """Query device status."""
-    print("Requesting device status")
-    send_cmd(0x46)
+    ok, lines = _run_tivoo_cmd([TIVOO_CMD, "46"])
+    if not ok:
+        return
+
+    # Find the status response (command 0x46)
+    for line in lines:
+        if not line.startswith("RX:"):
+            continue
+        hex_str = line[3:].strip()
+        raw = bytes(int(b, 16) for b in hex_str.split())
+        # Packet: 01 [len_lo len_hi] 04 46 [payload...] [crc_lo crc_hi] 02
+        if len(raw) < 7 or raw[4] != 0x46:
+            continue
+        # Payload starts after "04 46 55" = indices 5 onward (0x55 is response marker)
+        d = raw[6:]  # skip 01 len_lo len_hi 04 46 55
+        if len(d) < 21:
+            continue
+
+        CLOCK_STYLES = {
+            0: "fullscreen", 1: "rainbow", 2: "boxed", 3: "square",
+            4: "fullscreen-inv", 5: "round", 6: "wide",
+        }
+        mode_names = {0: "clock", 1: "light"}
+        mode = d[0]
+        r1, g1, b1 = d[3], d[4], d[5]
+        brightness = d[6]
+        fmt_24h = d[8]
+        r2, g2, b2 = d[12], d[13], d[14]
+        style = d[15]
+        temp = d[16]
+        weather = d[17]
+        calendar = d[19]
+
+        print(f"  Mode:       {mode_names.get(mode, f'unknown({mode})')}")
+        print(f"  Brightness: {brightness}%")
+        print(f"  Clock:      style {style} ({CLOCK_STYLES.get(style, '?')}), {'24h' if fmt_24h else '12h'}")
+        print(f"  Color:      RGB({r2}, {g2}, {b2})")
+        flags = []
+        if weather: flags.append("weather")
+        if temp: flags.append("temp")
+        if calendar: flags.append("calendar")
+        print(f"  Display:    {', '.join(flags) if flags else 'none'}")
+        return
+
+    print("  No status response received")
 
 
 @cli.command()
@@ -357,12 +417,13 @@ def image(path, duration):
 @click.option("--bg", default="black", help="Background color")
 @click.option("--speed", default=100, type=int, help="Scroll speed (ms/step)")
 @click.option("--step", default=2, type=click.IntRange(1, 8), help="Pixels per scroll step")
-@click.option("--size", default=12, type=click.IntRange(8, 16), help="Font size (8-16)")
+@click.option("--size", default=None, type=click.IntRange(8, 16), help="Font size (auto: 9=EN, 12=CJK)")
+@click.option("--font", default=None, type=click.Choice(FONT_NAMES, case_sensitive=False), help="Font name")
 @click.option("--loop", default=3, type=int, help="Loop count (0=infinite)")
-def text(text, color, bg, speed, step, size, loop):
+def text(text, color, bg, speed, step, size, font, loop):
     """Display scrolling text."""
     print(f"Generating text animation: \"{text}\"")
-    frames, delays = _gen_text_frames(text, color, bg, speed, step, font_size=size)
+    frames, delays = _gen_text_frames(text, color, bg, speed, step, font_size=size, font_name=font)
     print(f"  {len(frames)} frames, step {step}px, speed {speed}ms/step")
     duration_ms = _send_animation(frames, speed, delays)
     _wait_and_restore(duration_ms * loop / 1000 if loop > 0 else 0)
@@ -691,21 +752,48 @@ def _preview_ascii(pixels):
 STAGE_FILE = os.path.join(SCRIPT_DIR, ".tivoo_stage.json")
 
 
-def _load_font(size=16):
-    """Load pixel font (prefer Unifont for crisp 16x16 rendering)."""
+def _load_font(size=16, name=None):
+    """Load pixel font by name. Default: tries all fonts in order."""
     from PIL import ImageFont
-    for font_path in [
-        os.path.expanduser("~/.tivoo/fonts/unifont.otf"),
-        os.path.join(SCRIPT_DIR, "fonts", "unifont.otf"),
-        "/System/Library/Fonts/STHeiti Medium.ttc",
-        "/System/Library/Fonts/Hiragino Sans GB.ttc",
-        "/Library/Fonts/Arial Unicode.ttf",
-    ]:
-        try:
-            return ImageFont.truetype(font_path, size)
-        except Exception:
-            continue
+    if name:
+        paths = FONTS.get(name)
+        if not paths:
+            print(f"Unknown font '{name}'. Available: {', '.join(FONT_NAMES)}")
+            sys.exit(1)
+        for p in paths:
+            try:
+                return ImageFont.truetype(p, size)
+            except Exception:
+                continue
+        print(f"Font '{name}' not found on this system.")
+        sys.exit(1)
+    # Default: try all fonts in order
+    for paths in FONTS.values():
+        for p in paths:
+            try:
+                return ImageFont.truetype(p, size)
+            except Exception:
+                continue
     return ImageFont.load_default()
+
+
+def _has_cjk(text):
+    """Check if text contains CJK characters."""
+    for ch in text:
+        cp = ord(ch)
+        if (0x4E00 <= cp <= 0x9FFF or    # CJK Unified
+            0x3400 <= cp <= 0x4DBF or    # CJK Extension A
+            0x3000 <= cp <= 0x303F or    # CJK Symbols
+            0x3040 <= cp <= 0x309F or    # Hiragana
+            0x30A0 <= cp <= 0x30FF or    # Katakana
+            0xAC00 <= cp <= 0xD7AF):     # Hangul
+            return True
+    return False
+
+
+def _auto_font_size(text):
+    """Auto-select font size: 12 for CJK text, 9 for ASCII-only."""
+    return 12 if _has_cjk(text) else 9
 
 
 def _gen_static_frames(pixels, duration_ms):
@@ -716,12 +804,14 @@ def _gen_static_frames(pixels, duration_ms):
     return [pixels], [duration_ms]
 
 
-def _gen_text_frames(text, color="white", bg="black", speed=100, step=2, font_size=12):
+def _gen_text_frames(text, color="white", bg="black", speed=100, step=2, font_size=None, font_name=None):
     """Generate scrolling text frames. Returns (frames, delays)."""
     from PIL import Image, ImageDraw
     fg = parse_color(color)
     bg_rgb = parse_color(bg)
-    font = _load_font(font_size)
+    if font_size is None:
+        font_size = _auto_font_size(text)
+    font = _load_font(font_size, font_name)
 
     tmp = Image.new("1", (1, 1))
     bbox = ImageDraw.Draw(tmp).textbbox((0, 0), text, font=font)
@@ -800,14 +890,15 @@ def prepare_preset(name, duration, output):
 @click.option("--bg", default="black", help="Background color")
 @click.option("--speed", default=100, type=int, help="Scroll speed (ms/step)")
 @click.option("--step", default=2, type=click.IntRange(1, 8), help="Pixels per step")
-@click.option("--size", default=12, type=click.IntRange(8, 16), help="Font size (8-16)")
+@click.option("--size", default=None, type=click.IntRange(8, 16), help="Font size (auto: 9=EN, 12=CJK)")
+@click.option("--font", default=None, type=click.Choice(FONT_NAMES, case_sensitive=False), help="Font name")
 @click.option("-o", "--output", default=None, help="Stage file path")
-def prepare_text(text, color, bg, speed, step, size, output):
+def prepare_text(text, color, bg, speed, step, size, font, output):
     """Append scrolling text frames."""
     path = output or STAGE_FILE
     stage = _load_stage(path)
 
-    frames, delays = _gen_text_frames(text, color, bg, speed, step, font_size=size)
+    frames, delays = _gen_text_frames(text, color, bg, speed, step, font_size=size, font_name=font)
 
     stage["frames"].extend(frames)
     stage["delays"].extend(delays)

@@ -46,6 +46,17 @@ COLORS = {
 
 LOG_FILE = os.path.join(SCRIPT_DIR, "tivoo.log")
 
+FONTS = {
+    "arial": ["/Library/Fonts/Arial Unicode.ttf"],
+    "unifont": [
+        os.path.join(SCRIPT_DIR, "fonts", "unifont.otf"),
+    ],
+    "stheiti": ["/System/Library/Fonts/STHeiti Medium.ttc"],
+    "hiragino": ["/System/Library/Fonts/Hiragino Sans GB.ttc"],
+    "gothic": ["/System/Library/Fonts/AppleSDGothicNeo.ttc"],
+}
+FONT_NAMES = list(FONTS.keys())
+
 
 # --- Communication Layer ---
 
@@ -118,10 +129,10 @@ def send_session(payloads, timeout=30):
 
 
 def _restore_clock():
-    """Switch back to default clock (style 1, calendar on)."""
+    """Switch back to default clock (style 1)."""
     time.sleep(1)
     r, g, b = parse_color("white")
-    send_cmd(0x45, 0x00, 0x01, 0x01, 0x01, 0x00, 0x00, 0x01, r, g, b)
+    send_cmd(0x45, 0x00, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, r, g, b)
 
 
 def _wait_and_restore(duration_s):
@@ -406,12 +417,13 @@ def image(path, duration):
 @click.option("--bg", default="black", help="Background color")
 @click.option("--speed", default=100, type=int, help="Scroll speed (ms/step)")
 @click.option("--step", default=2, type=click.IntRange(1, 8), help="Pixels per scroll step")
-@click.option("--size", default=12, type=click.IntRange(8, 16), help="Font size (8-16)")
+@click.option("--size", default=None, type=click.IntRange(8, 16), help="Font size (auto: 9=EN, 12=CJK)")
+@click.option("--font", default=None, type=click.Choice(FONT_NAMES, case_sensitive=False), help="Font name")
 @click.option("--loop", default=3, type=int, help="Loop count (0=infinite)")
-def text(text, color, bg, speed, step, size, loop):
+def text(text, color, bg, speed, step, size, font, loop):
     """Display scrolling text."""
     print(f"Generating text animation: \"{text}\"")
-    frames, delays = _gen_text_frames(text, color, bg, speed, step, font_size=size)
+    frames, delays = _gen_text_frames(text, color, bg, speed, step, font_size=size, font_name=font)
     print(f"  {len(frames)} frames, step {step}px, speed {speed}ms/step")
     duration_ms = _send_animation(frames, speed, delays)
     _wait_and_restore(duration_ms * loop / 1000 if loop > 0 else 0)
@@ -740,21 +752,48 @@ def _preview_ascii(pixels):
 STAGE_FILE = os.path.join(SCRIPT_DIR, ".tivoo_stage.json")
 
 
-def _load_font(size=16):
-    """Load pixel font (prefer Unifont for crisp 16x16 rendering)."""
+def _load_font(size=16, name=None):
+    """Load pixel font by name. Default: tries all fonts in order."""
     from PIL import ImageFont
-    for font_path in [
-        os.path.expanduser("~/.tivoo/fonts/unifont.otf"),
-        os.path.join(SCRIPT_DIR, "fonts", "unifont.otf"),
-        "/System/Library/Fonts/STHeiti Medium.ttc",
-        "/System/Library/Fonts/Hiragino Sans GB.ttc",
-        "/Library/Fonts/Arial Unicode.ttf",
-    ]:
-        try:
-            return ImageFont.truetype(font_path, size)
-        except Exception:
-            continue
+    if name:
+        paths = FONTS.get(name)
+        if not paths:
+            print(f"Unknown font '{name}'. Available: {', '.join(FONT_NAMES)}")
+            sys.exit(1)
+        for p in paths:
+            try:
+                return ImageFont.truetype(p, size)
+            except Exception:
+                continue
+        print(f"Font '{name}' not found on this system.")
+        sys.exit(1)
+    # Default: try all fonts in order
+    for paths in FONTS.values():
+        for p in paths:
+            try:
+                return ImageFont.truetype(p, size)
+            except Exception:
+                continue
     return ImageFont.load_default()
+
+
+def _has_cjk(text):
+    """Check if text contains CJK characters."""
+    for ch in text:
+        cp = ord(ch)
+        if (0x4E00 <= cp <= 0x9FFF or    # CJK Unified
+            0x3400 <= cp <= 0x4DBF or    # CJK Extension A
+            0x3000 <= cp <= 0x303F or    # CJK Symbols
+            0x3040 <= cp <= 0x309F or    # Hiragana
+            0x30A0 <= cp <= 0x30FF or    # Katakana
+            0xAC00 <= cp <= 0xD7AF):     # Hangul
+            return True
+    return False
+
+
+def _auto_font_size(text):
+    """Auto-select font size: 12 for CJK text, 9 for ASCII-only."""
+    return 12 if _has_cjk(text) else 9
 
 
 def _gen_static_frames(pixels, duration_ms):
@@ -765,12 +804,14 @@ def _gen_static_frames(pixels, duration_ms):
     return [pixels], [duration_ms]
 
 
-def _gen_text_frames(text, color="white", bg="black", speed=100, step=2, font_size=12):
+def _gen_text_frames(text, color="white", bg="black", speed=100, step=2, font_size=None, font_name=None):
     """Generate scrolling text frames. Returns (frames, delays)."""
     from PIL import Image, ImageDraw
     fg = parse_color(color)
     bg_rgb = parse_color(bg)
-    font = _load_font(font_size)
+    if font_size is None:
+        font_size = _auto_font_size(text)
+    font = _load_font(font_size, font_name)
 
     tmp = Image.new("1", (1, 1))
     bbox = ImageDraw.Draw(tmp).textbbox((0, 0), text, font=font)
@@ -849,14 +890,15 @@ def prepare_preset(name, duration, output):
 @click.option("--bg", default="black", help="Background color")
 @click.option("--speed", default=100, type=int, help="Scroll speed (ms/step)")
 @click.option("--step", default=2, type=click.IntRange(1, 8), help="Pixels per step")
-@click.option("--size", default=12, type=click.IntRange(8, 16), help="Font size (8-16)")
+@click.option("--size", default=None, type=click.IntRange(8, 16), help="Font size (auto: 9=EN, 12=CJK)")
+@click.option("--font", default=None, type=click.Choice(FONT_NAMES, case_sensitive=False), help="Font name")
 @click.option("-o", "--output", default=None, help="Stage file path")
-def prepare_text(text, color, bg, speed, step, size, output):
+def prepare_text(text, color, bg, speed, step, size, font, output):
     """Append scrolling text frames."""
     path = output or STAGE_FILE
     stage = _load_stage(path)
 
-    frames, delays = _gen_text_frames(text, color, bg, speed, step, font_size=size)
+    frames, delays = _gen_text_frames(text, color, bg, speed, step, font_size=size, font_name=font)
 
     stage["frames"].extend(frames)
     stage["delays"].extend(delays)

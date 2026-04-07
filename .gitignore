@@ -1,0 +1,15 @@
+# Compiled binary
+tivoo_cmd
+
+# Python
+__pycache__/
+*.pyc
+
+# Stage files
+.tivoo_stage.json
+
+# Logs
+tivoo.log
+
+# macOS
+.DS_Store

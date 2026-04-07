@@ -315,7 +315,6 @@ def flash(count):
 @cli.command()
 def status():
     """Query device status."""
-    print("Requesting device status")
     ok, lines = _run_tivoo_cmd([TIVOO_CMD, "46"])
     if not ok:
         return

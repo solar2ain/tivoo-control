@@ -121,17 +121,23 @@ def _restore_clock():
     """Switch back to default clock (style 1, calendar on)."""
     time.sleep(1)
     r, g, b = parse_color("white")
-    print("  Restoring clock mode")
     send_cmd(0x45, 0x00, 0x01, 0x01, 0x01, 0x00, 0x00, 0x01, r, g, b)
 
 
 def _wait_and_restore(duration_s):
-    """Wait then restore clock. duration_s=0 means stay forever."""
+    """Fork a background process to wait then restore clock. Returns immediately."""
     if duration_s <= 0:
         return
-    print(f"  Waiting {duration_s:.1f}s before restoring clock...")
-    time.sleep(duration_s)
-    _restore_clock()
+    pid = os.fork()
+    if pid == 0:
+        # Child process: detach, wait, restore, exit
+        os.setsid()
+        time.sleep(duration_s)
+        _restore_clock()
+        os._exit(0)
+    else:
+        print(f"  Will restore clock in {duration_s:.1f}s (background)")
+
 
 
 # --- Color Utilities ---

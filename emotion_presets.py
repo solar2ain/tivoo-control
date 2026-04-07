@@ -200,6 +200,11 @@ def _draw_mouth(p, style):
         # Flat line mouth
         for x in range(5, 11):
             p[10][x] = _BLACK
+    elif style == "kiss":
+        # Puckered lips
+        p[9][7] = _RED; p[9][8] = _RED
+        p[10][6] = _RED; p[10][9] = _RED
+        p[11][7] = _RED; p[11][8] = _RED
 
 
 # --- Brows ---
@@ -532,6 +537,39 @@ def party():
     return [f1, f2, f3], [400, 400, 400]
 
 
+def _draw_flying_heart(p, x, y):
+    """Draw a small 3x3 heart at position."""
+    h = _RED
+    if 0 <= y < 16 and 0 <= x < 15:
+        p[y][x] = h; p[y][x + 1] = h
+    if 0 <= y + 1 < 16 and 0 <= x - 1 < 16 and x + 2 < 16:
+        p[y + 1][x - 1] = h; p[y + 1][x] = h; p[y + 1][x + 1] = h; p[y + 1][x + 2] = h
+    if 0 <= y + 2 < 16 and 0 <= x < 15:
+        p[y + 2][x] = h; p[y + 2][x + 1] = h
+    if 0 <= y + 3 < 16:
+        cx = x if (x + 1) < 16 else x
+        p[y + 3][cx] = h
+
+
+def kiss():
+    """Flying kiss animation."""
+    f1 = _face_base()
+    _draw_eyes(f1, "one_closed")
+    _draw_mouth(f1, "kiss")
+
+    f2 = _face_base()
+    _draw_eyes(f2, "one_closed")
+    _draw_mouth(f2, "kiss")
+    _draw_flying_heart(f2, 12, 4)
+
+    f3 = _face_base()
+    _draw_eyes(f3, "one_closed")
+    _draw_mouth(f3, "kiss")
+    _draw_flying_heart(f3, 13, 1)
+
+    return [f1, f2, f3], [400, 400, 400]
+
+
 # --- Registry ---
 
 EMOTION_PRESETS = {
@@ -547,4 +585,5 @@ EMOTION_PRESETS = {
     "wink": ("Winking face", wink),
     "sick": ("Sick face", sick),
     "party": ("Party face", party),
+    "kiss": ("Flying kiss", kiss),
 }

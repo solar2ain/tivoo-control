@@ -150,7 +150,7 @@ def _draw_eyes(p, style):
 def _draw_mouth(p, style):
     """Draw Luna's mouth at y=11.
 
-    Styles: shy, smile, sad, open, flat, wavy, grin
+    Styles: shy, smile, sad, open, flat, wavy, grin, kiss
     """
     if style == "shy":
         p[11][7] = _LP; p[11][8] = _LP
@@ -177,6 +177,10 @@ def _draw_mouth(p, style):
         p[11][5] = _LP; p[11][6] = _LP
         p[12][7] = _LP; p[12][8] = _LP
         p[11][9] = _LP; p[11][10] = _LP
+
+    elif style == "kiss":
+        p[11][7] = _LP; p[11][8] = _LP
+        p[12][7] = _LP; p[12][8] = _LP
 
 
 # --- Face Details ---
@@ -411,6 +415,38 @@ def party():
     ], [400, 400, 400]
 
 
+def _draw_flying_heart(p, x, y):
+    """Draw a small heart at position."""
+    h = (255, 80, 130)
+    if 0 <= y < 16 and 0 <= x < 15:
+        p[y][x] = h; p[y][x + 1] = h
+    if 0 <= y + 1 < 16 and 0 <= x - 1 < 16 and x + 2 < 16:
+        p[y + 1][x - 1] = h; p[y + 1][x] = h; p[y + 1][x + 1] = h; p[y + 1][x + 2] = h
+    if 0 <= y + 2 < 16 and 0 <= x < 15:
+        p[y + 2][x] = h; p[y + 2][x + 1] = h
+    if 0 <= y + 3 < 16:
+        p[y + 3][x] = h
+
+
+def kiss():
+    """Flying kiss Luna."""
+    return [
+        _frame(eyes="one_closed", mouth="kiss"),
+        _frame(eyes="one_closed", mouth="kiss", sparkles=1),
+        _frame(eyes="one_closed", mouth="kiss"),
+    ], [400, 400, 400]
+
+
+def kiss_with_heart():
+    """Flying kiss Luna with heart."""
+    f1 = _frame(eyes="one_closed", mouth="kiss")
+    f2 = _frame(eyes="one_closed", mouth="kiss")
+    _draw_flying_heart(f2, 12, 5)
+    f3 = _frame(eyes="one_closed", mouth="kiss")
+    _draw_flying_heart(f3, 13, 2)
+    return [f1, f2, f3], [400, 400, 400]
+
+
 # --- Registry ---
 
 EMOTION_PRESETS_LUNA = {
@@ -426,4 +462,5 @@ EMOTION_PRESETS_LUNA = {
     "wink": ("Winking Luna", wink),
     "sick": ("Sick Luna", sick),
     "party": ("Party Luna", party),
+    "kiss": ("Flying kiss Luna", kiss_with_heart),
 }

@@ -144,13 +144,33 @@ def _draw_eyes(p, style):
         p[7][4] = _EK; p[7][6] = _EK; p[8][5] = _EK
         p[7][9] = _EK; p[7][11] = _EK; p[8][10] = _EK
 
+    elif style == "lookup":
+        # Looking up (thinking)
+        p[6][4] = _EK; p[6][5] = _EK; p[6][6] = _EK
+        p[6][9] = _EK; p[6][10] = _EK; p[6][11] = _EK
+        p[7][5] = _EV; p[7][6] = _EV
+        p[7][10] = _EV; p[7][11] = _EV
+
+    elif style == "focused":
+        # Determined narrow eyes
+        p[6][4] = _EK; p[6][5] = _EK; p[6][6] = _EK
+        p[6][9] = _EK; p[6][10] = _EK; p[6][11] = _EK
+        p[7][4] = _EK; p[7][5] = _EV; p[7][6] = _EK
+        p[7][9] = _EK; p[7][10] = _EV; p[7][11] = _EK
+
+    elif style == "cross":
+        # X eyes (error)
+        r = (255, 80, 80)
+        p[7][4] = r; p[7][6] = r; p[8][5] = r; p[6][4] = r; p[6][6] = r
+        p[7][9] = r; p[7][11] = r; p[8][10] = r; p[6][9] = r; p[6][11] = r
+
 
 # --- Mouth ---
 
 def _draw_mouth(p, style):
     """Draw Luna's mouth at y=11.
 
-    Styles: shy, smile, sad, open, flat, wavy, grin, kiss
+    Styles: shy, smile, sad, open, flat, wavy, grin, kiss, determined
     """
     if style == "shy":
         p[11][7] = _LP; p[11][8] = _LP
@@ -181,6 +201,9 @@ def _draw_mouth(p, style):
     elif style == "kiss":
         p[11][7] = _LP; p[11][8] = _LP
         p[12][7] = _LP; p[12][8] = _LP
+
+    elif style == "determined":
+        p[11][6] = _LP; p[11][7] = _LP; p[11][8] = _LP; p[11][9] = _LP
 
 
 # --- Face Details ---
@@ -447,6 +470,125 @@ def kiss_with_heart():
     return [f1, f2, f3], [400, 400, 400]
 
 
+def _draw_thought_dots(p, frame=0):
+    """Draw thinking dots."""
+    w = _WHITE
+    positions = [(1, 14), (2, 15), (3, 15)]
+    for i, (y, x) in enumerate(positions):
+        if i <= frame and 0 <= x < 16:
+            p[y][x] = w
+
+
+def _draw_gear(p, frame=0):
+    """Draw gear icon."""
+    g = (180, 180, 200)
+    cx, cy = 14, 2
+    p[cy][cx] = g; p[cy - 1][cx] = g; p[cy + 1][cx] = g
+    p[cy][cx - 1] = g
+    if frame == 1:
+        p[cy - 1][cx - 1] = g; p[cy + 1][cx + 1] = _MG
+    else:
+        p[cy - 1][cx + 1] = _MG; p[cy + 1][cx - 1] = g
+
+
+def _draw_code_brackets(p):
+    """Draw </> code symbol."""
+    c = _MG
+    p[1][11] = c; p[2][10] = c; p[3][11] = c
+    p[1][13] = c; p[2][12] = c; p[3][12] = c
+    p[1][14] = c; p[2][15] = c; p[3][14] = c
+
+
+def _draw_checkmark(p):
+    """Draw green checkmark."""
+    g = (50, 220, 50)
+    p[1][14] = g; p[2][13] = g; p[2][14] = g; p[3][12] = g; p[3][13] = g; p[1][15] = g
+
+
+def _draw_warning(p, frame=0):
+    """Draw warning sign."""
+    y = (255, 200, 0)
+    r = (255, 80, 80)
+    if frame == 0:
+        p[1][14] = y; p[2][13] = y; p[2][15] = y; p[3][12] = y; p[3][13] = y; p[3][14] = y; p[3][15] = y
+        p[2][14] = r
+    else:
+        p[1][14] = r; p[2][13] = r; p[2][15] = r; p[3][12] = r; p[3][13] = r; p[3][14] = r; p[3][15] = r
+        p[2][14] = y
+
+
+def _draw_loading_luna(p, frame=0):
+    """Draw rotating magic dots around Luna."""
+    dots = [(0, 7), (0, 8), (3, 14), (7, 15), (12, 14), (15, 8), (15, 7), (12, 1), (7, 0), (3, 1)]
+    for i, (y, x) in enumerate(dots):
+        if 0 <= y < 16 and 0 <= x < 16:
+            p[y][x] = _SP if (i % len(dots)) == (frame % len(dots)) or ((i - 1) % len(dots)) == (frame % len(dots)) else _ST
+
+
+def working():
+    """Working hard Luna."""
+    return [
+        _frame(eyes="focused", mouth="determined"),
+        _frame(eyes="focused", mouth="determined", sweat="left"),
+        _frame(eyes="focused", mouth="determined", sweat="both"),
+    ], [500, 500, 500]
+
+
+def thinking():
+    """Thinking Luna."""
+    f1 = _frame(eyes="lookup", mouth="flat")
+    _draw_thought_dots(f1, 0)
+    f2 = _frame(eyes="lookup", mouth="flat")
+    _draw_thought_dots(f2, 1)
+    f3 = _frame(eyes="lookup", mouth="flat")
+    _draw_thought_dots(f3, 2)
+    return [f1, f2, f3], [500, 500, 500]
+
+
+def error():
+    """Error alert Luna."""
+    f1 = _frame(eyes="cross", mouth="open", blush=False)
+    _draw_warning(f1, 0)
+    f2 = _frame(eyes="cross", mouth="open", blush=False)
+    _draw_warning(f2, 1)
+    f3 = _frame(eyes="cross", mouth="open", blush=False)
+    _draw_warning(f3, 0)
+    return [f1, f2, f3], [300, 300, 300]
+
+
+def success():
+    """Success Luna."""
+    f1 = _frame(eyes="open", mouth="shy")
+    f2 = _frame(eyes="squint", mouth="grin")
+    _draw_checkmark(f2)
+    f3 = _frame(eyes="squint", mouth="grin", sparkles=1)
+    _draw_checkmark(f3)
+    return [f1, f2, f3], [400, 400, 400]
+
+
+def coding():
+    """Coding Luna."""
+    f1 = _frame(eyes="focused", mouth="determined")
+    _draw_code_brackets(f1)
+    f2 = _frame(eyes="squint", mouth="determined")
+    _draw_code_brackets(f2)
+    _draw_gear(f2, 0)
+    f3 = _frame(eyes="focused", mouth="determined")
+    _draw_code_brackets(f3)
+    _draw_gear(f3, 1)
+    return [f1, f2, f3], [400, 400, 400]
+
+
+def loading():
+    """Loading Luna."""
+    frames = []
+    for i in range(4):
+        f = _frame(eyes="open", mouth="flat")
+        _draw_loading_luna(f, i)
+        frames.append(f)
+    return frames, [250, 250, 250, 250]
+
+
 # --- Registry ---
 
 EMOTION_PRESETS_LUNA = {
@@ -463,4 +605,11 @@ EMOTION_PRESETS_LUNA = {
     "sick": ("Sick Luna", sick),
     "party": ("Party Luna", party),
     "kiss": ("Flying kiss Luna", kiss_with_heart),
+    # Workflow
+    "working": ("Working Luna", working),
+    "thinking": ("Thinking Luna", thinking),
+    "error": ("Error Luna", error),
+    "success": ("Success Luna", success),
+    "coding": ("Coding Luna", coding),
+    "loading": ("Loading Luna", loading),
 }

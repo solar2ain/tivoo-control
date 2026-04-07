@@ -617,33 +617,51 @@ def raw(hex_bytes):
 @cli.command()
 @click.argument("name", required=False)
 @click.option("--duration", default=12, type=int, help="Display seconds (0=forever)")
-def preset(name, duration):
+@click.option("--loop", default=3, type=int, help="Loop count for animations (0=infinite)")
+def preset(name, duration, loop):
     """Send preset pixel art pattern.
 
     Run without arguments to list all presets.
     """
     from presets import PRESETS
+    from emotion_presets import EMOTION_PRESETS
+
+    all_presets = {**PRESETS, **EMOTION_PRESETS}
 
     if not name:
         print("Available presets:\n")
+        print("  Static:")
         for key, (desc, _) in PRESETS.items():
-            print(f"  {key:12s}  {desc}")
+            print(f"    {key:12s}  {desc}")
+        print("\n  Animated (emotions):")
+        for key, (desc, _) in EMOTION_PRESETS.items():
+            print(f"    {key:12s}  {desc}")
         return
 
-    if name not in PRESETS:
+    if name not in all_presets:
         print(f"Unknown preset: {name}")
-        print(f"Available: {', '.join(PRESETS.keys())}")
+        print(f"Available: {', '.join(all_presets.keys())}")
         return
 
-    desc, func = PRESETS[name]
+    desc, func = all_presets[name]
     print(f"Sending preset: {desc}")
-    pixels = func()
-    _preview_ascii(pixels)
-    frame = build_image_frame(pixels, timecode=0)
-    payload = [0x44, 0x00, 0x0A, 0x0A, 0x04] + frame
-    send_cmd(*payload)
-    print("  Sent")
-    _wait_and_restore(duration)
+    result = func()
+
+    if isinstance(result, tuple):
+        # Animated preset: (frames, delays)
+        frames, delays = result
+        print(f"  {len(frames)} frames (animated)")
+        duration_ms = _send_animation(frames, delays[0], delays)
+        _wait_and_restore(duration_ms * loop / 1000 if loop > 0 else 0)
+    else:
+        # Static preset: pixels
+        pixels = result
+        _preview_ascii(pixels)
+        frame = build_image_frame(pixels, timecode=0)
+        payload = [0x44, 0x00, 0x0A, 0x0A, 0x04] + frame
+        send_cmd(*payload)
+        print("  Sent")
+        _wait_and_restore(duration)
 
 
 def _parse_json_response(json_str):
@@ -867,21 +885,28 @@ def prepare():
 def prepare_preset(name, duration, output):
     """Append preset pattern frames."""
     from presets import PRESETS
-    if name not in PRESETS:
+    from emotion_presets import EMOTION_PRESETS
+
+    all_presets = {**PRESETS, **EMOTION_PRESETS}
+    if name not in all_presets:
         print(f"Unknown preset: {name}")
         return
 
     path = output or STAGE_FILE
     stage = _load_stage(path)
 
-    desc, func = PRESETS[name]
-    pixels = func()
-    frames, delays = _gen_static_frames(pixels, duration)
+    desc, func = all_presets[name]
+    result = func()
+
+    if isinstance(result, tuple):
+        frames, delays = result
+    else:
+        frames, delays = _gen_static_frames(result, duration)
 
     stage["frames"].extend(frames)
     stage["delays"].extend(delays)
     _save_stage(path, stage)
-    print(f"Appended: {desc} ({len(frames)} frame, {duration}ms) -> {os.path.basename(path)}")
+    print(f"Appended: {desc} ({len(frames)} frame(s)) -> {os.path.basename(path)}")
 
 
 @prepare.command("text")

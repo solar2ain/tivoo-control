@@ -614,28 +614,43 @@ def raw(hex_bytes):
     send_cmd(*hex_bytes)
 
 
+EMOTION_SETS = ["default", "luna"]
+
+
+def _load_all_presets(emotion_set=None):
+    """Load static presets + selected emotion preset set."""
+    from presets import PRESETS
+    s = (emotion_set or "default").lower()
+    if s == "luna":
+        from emotion_presets_luna import EMOTION_PRESETS_LUNA as EP
+    else:
+        from emotion_presets import EMOTION_PRESETS as EP
+    return PRESETS, EP
+
+
 @cli.command()
 @click.argument("name", required=False)
 @click.option("--duration", default=12, type=int, help="Display seconds (0=forever)")
 @click.option("--loop", default=3, type=int, help="Loop count for animations (0=infinite)")
-def preset(name, duration, loop):
+@click.option("--set", "emotion_set", default=None, type=click.Choice(EMOTION_SETS, case_sensitive=False), help="Emotion preset set")
+def preset(name, duration, loop, emotion_set):
     """Send preset pixel art pattern.
 
     Run without arguments to list all presets.
     """
-    from presets import PRESETS
-    from emotion_presets import EMOTION_PRESETS
-
-    all_presets = {**PRESETS, **EMOTION_PRESETS}
+    static, emotions = _load_all_presets(emotion_set)
+    all_presets = {**static, **emotions}
 
     if not name:
         print("Available presets:\n")
         print("  Static:")
-        for key, (desc, _) in PRESETS.items():
+        for key, (desc, _) in static.items():
             print(f"    {key:12s}  {desc}")
-        print("\n  Animated (emotions):")
-        for key, (desc, _) in EMOTION_PRESETS.items():
+        set_name = (emotion_set or "default").lower()
+        print(f"\n  Animated (emotions: {set_name}):")
+        for key, (desc, _) in emotions.items():
             print(f"    {key:12s}  {desc}")
+        print(f"\n  Sets: {', '.join(EMOTION_SETS)}")
         return
 
     if name not in all_presets:
@@ -881,13 +896,12 @@ def prepare():
 @prepare.command("preset")
 @click.argument("name")
 @click.option("--duration", default=2000, type=int, help="Duration (ms)")
+@click.option("--set", "emotion_set", default=None, type=click.Choice(EMOTION_SETS, case_sensitive=False), help="Emotion preset set")
 @click.option("-o", "--output", default=None, help="Stage file path")
-def prepare_preset(name, duration, output):
+def prepare_preset(name, duration, emotion_set, output):
     """Append preset pattern frames."""
-    from presets import PRESETS
-    from emotion_presets import EMOTION_PRESETS
-
-    all_presets = {**PRESETS, **EMOTION_PRESETS}
+    static, emotions = _load_all_presets(emotion_set)
+    all_presets = {**static, **emotions}
     if name not in all_presets:
         print(f"Unknown preset: {name}")
         return

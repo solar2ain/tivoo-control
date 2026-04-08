@@ -27,7 +27,7 @@ LUNA_PRESETS="$TIVOO_DIR/emotion_presets_luna.py"
 # DEFAULT=1 means enabled by default, 0 means opt-in only
 HOOK_MAP=(
   # Needs user attention (default enabled)
-  "Stop:success+waiting:3:完成啦，等待指示:Done, awaiting instructions:1"
+  "Stop:success:3:完成啦，等待指示:Done, awaiting instructions:1"
   "StopFailure:error:3:出错了，快来看看:Error, come take a look:1"
   "Notification:notify:5:通知来啦:Heads up:1"
   "PermissionRequest:waiting:5:等待授权:Approval needed:1"
@@ -218,12 +218,10 @@ HOOKEOF
 
   # Event-specific body
   if [[ "$EVENT" == "Stop" ]]; then
-    # Stop: show success (3 loops ≈ 3.3s), then transition to waiting
+    # Stop: show success
     cat >> "$HOOK_SCRIPT" << HOOKEOF
 (
   python3 $TIVOO_PY preset success --loop 3$LOAD_FLAG 2>/dev/null
-  sleep 4
-  python3 $TIVOO_PY preset waiting --loop 3$LOAD_FLAG 2>/dev/null
 ) &
 HOOKEOF
     if $WANT_TTS; then

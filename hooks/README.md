@@ -35,7 +35,7 @@ These fire when Claude stops or needs user action:
 
 | Event | Preset | Loop | 中文 TTS | English TTS |
 |-------|--------|------|----------|-------------|
-| **Stop** | `success` → `waiting` | 2+3 | 完成啦，等待指示 | Done, awaiting instructions |
+| **Stop** | `success` | 3 | 完成啦，等待指示 | Done, awaiting instructions |
 | **StopFailure** | `error` | 3 | 出错了，快来看看 | Error, come take a look |
 | **Notification** | `notify` | 5 | 通知来啦 + (message) | Heads up + (message) |
 | **PermissionRequest** | `waiting` | 5 | 等待授权 | Approval needed |

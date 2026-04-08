@@ -6,15 +6,18 @@ Control a Divoom Tivoo 16x16 pixel screen via macOS IOBluetooth framework.
 Uses compiled tivoo_cmd binary to send RFCOMM commands.
 
 Usage:
-    python3 tivoo_macos.py brightness 50        # Set brightness 0-100
-    python3 tivoo_macos.py clock                # Clock mode
-    python3 tivoo_macos.py light red            # Light effect
-    python3 tivoo_macos.py image photo.png      # Send image
-    python3 tivoo_macos.py text Hello           # Scrolling text
-    python3 tivoo_macos.py anim frames/         # Send animation
-    python3 tivoo_macos.py preset heart         # Preset pixel art
-    python3 tivoo_macos.py ai "a cat"           # AI-generated pixel art
-    python3 tivoo_macos.py raw 74 64            # Raw hex command
+    python3 tivoo_macos.py brightness 50           # Set brightness 0-100
+    python3 tivoo_macos.py clock                   # Clock mode
+    python3 tivoo_macos.py light red               # Light effect
+    python3 tivoo_macos.py image photo.png         # Send image
+    python3 tivoo_macos.py text Hello              # Scrolling text
+    python3 tivoo_macos.py anim frames/            # Send animation
+    python3 tivoo_macos.py preset heart            # Animated preset
+    python3 tivoo_macos.py preset working          # Workflow animation
+    python3 tivoo_macos.py preset happy            # Emotion animation
+    python3 tivoo_macos.py preset happy --load emotion_presets_luna.py
+    python3 tivoo_macos.py ai "a cat"              # AI-generated pixel art
+    python3 tivoo_macos.py raw 74 64               # Raw hex command
 """
 import subprocess
 import sys
@@ -22,6 +25,7 @@ import os
 import math
 import time
 import json
+import importlib.util
 
 import click
 
@@ -614,43 +618,56 @@ def raw(hex_bytes):
     send_cmd(*hex_bytes)
 
 
-EMOTION_SETS = ["default", "luna"]
+def _load_from_files(paths):
+    """Load presets from external .py files. Returns (presets, emotions)."""
+    presets, emotions = {}, {}
+    for p in paths:
+        spec = importlib.util.spec_from_file_location("custom", os.path.abspath(p))
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        presets.update(getattr(mod, "PRESETS", {}))
+        emotions.update(getattr(mod, "EMOTIONS", {}))
+    return presets, emotions
 
 
-def _load_all_presets(emotion_set=None):
-    """Load static presets + selected emotion preset set."""
+def _load_all_presets(load_files=None):
+    """Load built-in + custom presets. Returns (presets, emotions)."""
     from presets import PRESETS
-    s = (emotion_set or "default").lower()
-    if s == "luna":
-        from emotion_presets_luna import EMOTION_PRESETS_LUNA as EP
-    else:
-        from emotion_presets import EMOTION_PRESETS as EP
-    return PRESETS, EP
+    from emotion_presets import EMOTION_PRESETS as EP
+
+    presets = dict(PRESETS)
+    emotions = dict(EP)
+
+    if load_files:
+        cp, ce = _load_from_files(load_files)
+        presets.update(cp)
+        emotions.update(ce)
+
+    return presets, emotions
 
 
 @cli.command()
 @click.argument("name", required=False)
 @click.option("--duration", default=12, type=int, help="Display seconds (0=forever)")
 @click.option("--loop", default=3, type=int, help="Loop count for animations (0=infinite)")
-@click.option("--set", "emotion_set", default=None, type=click.Choice(EMOTION_SETS, case_sensitive=False), help="Emotion preset set")
-def preset(name, duration, loop, emotion_set):
+@click.option("--load", "load_files", multiple=True, type=click.Path(exists=True), help="Load custom preset file(s)")
+def preset(name, duration, loop, load_files):
     """Send preset pixel art pattern.
 
     Run without arguments to list all presets.
+    Use --load to add custom presets from .py files.
     """
-    static, emotions = _load_all_presets(emotion_set)
-    all_presets = {**static, **emotions}
+    presets, emotions = _load_all_presets(load_files or None)
+    all_presets = {**presets, **emotions}
 
     if not name:
         print("Available presets:\n")
-        print("  Static:")
-        for key, (desc, _) in static.items():
-            print(f"    {key:12s}  {desc}")
-        set_name = (emotion_set or "default").lower()
-        print(f"\n  Animated (emotions: {set_name}):")
+        print("  Presets:")
+        for key, (desc, _) in presets.items():
+            print(f"    {key:14s}  {desc}")
+        print(f"\n  Emotions:")
         for key, (desc, _) in emotions.items():
-            print(f"    {key:12s}  {desc}")
-        print(f"\n  Sets: {', '.join(EMOTION_SETS)}")
+            print(f"    {key:14s}  {desc}")
         return
 
     if name not in all_presets:
@@ -660,23 +677,11 @@ def preset(name, duration, loop, emotion_set):
 
     desc, func = all_presets[name]
     print(f"Sending preset: {desc}")
-    result = func()
+    frames, delays = func()
 
-    if isinstance(result, tuple):
-        # Animated preset: (frames, delays)
-        frames, delays = result
-        print(f"  {len(frames)} frames (animated)")
-        duration_ms = _send_animation(frames, delays[0], delays)
-        _wait_and_restore(duration_ms * loop / 1000 if loop > 0 else 0)
-    else:
-        # Static preset: pixels
-        pixels = result
-        _preview_ascii(pixels)
-        frame = build_image_frame(pixels, timecode=0)
-        payload = [0x44, 0x00, 0x0A, 0x0A, 0x04] + frame
-        send_cmd(*payload)
-        print("  Sent")
-        _wait_and_restore(duration)
+    print(f"  {len(frames)} frame(s)")
+    duration_ms = _send_animation(frames, delays[0], delays)
+    _wait_and_restore(duration_ms * loop / 1000 if loop > 0 else 0)
 
 
 def _parse_json_response(json_str):
@@ -896,12 +901,12 @@ def prepare():
 @prepare.command("preset")
 @click.argument("name")
 @click.option("--duration", default=2000, type=int, help="Duration (ms)")
-@click.option("--set", "emotion_set", default=None, type=click.Choice(EMOTION_SETS, case_sensitive=False), help="Emotion preset set")
+@click.option("--load", "load_files", multiple=True, type=click.Path(exists=True), help="Load custom preset file(s)")
 @click.option("-o", "--output", default=None, help="Stage file path")
-def prepare_preset(name, duration, emotion_set, output):
+def prepare_preset(name, duration, load_files, output):
     """Append preset pattern frames."""
-    static, emotions = _load_all_presets(emotion_set)
-    all_presets = {**static, **emotions}
+    presets, emotions = _load_all_presets(load_files or None)
+    all_presets = {**presets, **emotions}
     if name not in all_presets:
         print(f"Unknown preset: {name}")
         return
@@ -910,12 +915,7 @@ def prepare_preset(name, duration, emotion_set, output):
     stage = _load_stage(path)
 
     desc, func = all_presets[name]
-    result = func()
-
-    if isinstance(result, tuple):
-        frames, delays = result
-    else:
-        frames, delays = _gen_static_frames(result, duration)
+    frames, delays = func()
 
     stage["frames"].extend(frames)
     stage["delays"].extend(delays)

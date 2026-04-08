@@ -7,7 +7,7 @@ TASK_SUBJECT=$(echo "$INPUT" | jq -r '.task_subject // "task"')
 
 # Run in background so hook returns immediately
 (
-  python3 /Users/didi/Projects/tivoo-control/tivoo_macos.py preset happy --set luna --loop 1 2>/dev/null
+  python3 /Users/didi/Projects/tivoo-control/tivoo_macos.py preset happy --load /Users/didi/Projects/tivoo-control/emotion_presets_luna.py --loop 1 2>/dev/null
   say -v Tingting "任务完成：${TASK_SUBJECT}" 2>/dev/null
 ) &
 

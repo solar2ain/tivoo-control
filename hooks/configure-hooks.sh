@@ -218,10 +218,11 @@ HOOKEOF
 
   # Event-specific body
   if [[ "$EVENT" == "Stop" ]]; then
-    # Stop: show success first, then transition to waiting
+    # Stop: show success (3 loops ≈ 3.3s), then transition to waiting
     cat >> "$HOOK_SCRIPT" << HOOKEOF
 (
-  python3 $TIVOO_PY preset success --loop 2$LOAD_FLAG 2>/dev/null
+  python3 $TIVOO_PY preset success --loop 3 --duration 0$LOAD_FLAG 2>/dev/null
+  sleep 4
   python3 $TIVOO_PY preset waiting --loop 3$LOAD_FLAG 2>/dev/null
 ) &
 HOOKEOF

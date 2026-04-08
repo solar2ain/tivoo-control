@@ -14,6 +14,7 @@ Control a [Divoom Tivoo](https://divoom.com) 16x16 pixel screen from macOS via B
 - **AI pixel art** — generate pixel art via Claude CLI or Anthropic API
 - **Compose animations** — stage multiple segments (preset + text + image) and send as one animation
 - **Auto-restore clock** — display content for a set duration/loops, then switch back to clock mode
+- **Claude Code hooks** — show Tivoo animations on Claude Code events (task done, errors, notifications)
 
 ## Requirements
 
@@ -81,6 +82,21 @@ Default: `11:75:58:8C:5B:0C`. The MAC is passed to `tivoo_cmd` via the `-a` flag
 ## Claude Code Skill
 
 The `skills/tivoo/` directory contains a [Claude Code](https://claude.ai/code) skill that lets Claude control the Tivoo directly in conversation. See [SKILL.md](skills/tivoo/SKILL.md) for setup instructions.
+
+## Claude Code Hooks
+
+The `hooks/` directory contains a configuration script to show Tivoo animations on Claude Code events. See [hooks/README.md](hooks/README.md) for details.
+
+```bash
+# Apply default hooks (6 events: Stop, StopFailure, Notification, PermissionRequest, Elicitation, TeammateIdle)
+./hooks/configure-hooks.sh
+
+# English TTS
+./hooks/configure-hooks.sh --lang en
+
+# Enable all 13 events
+./hooks/configure-hooks.sh --all
+```
 
 ## Protocol
 

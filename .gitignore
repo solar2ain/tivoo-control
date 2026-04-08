@@ -11,5 +11,8 @@ __pycache__/
 # Logs
 tivoo.log
 
+# Generated hook scripts (machine-specific paths)
+hooks/generated/
+
 # macOS
 .DS_Store

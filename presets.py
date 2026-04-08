@@ -1355,6 +1355,98 @@ def done():
     return [f1, f2, f3, f4], [200, 200, 300, 400]
 
 
+def waiting():
+    """Hourglass flipping — sand flowing."""
+    BG = _
+    W = (200, 200, 200)  # glass outline
+    S = (230, 180, 80)   # sand
+    Sd = (180, 140, 50)  # dark sand
+
+    def _hourglass(phase):
+        f = _empty()
+        # Glass outline (top triangle + bottom triangle)
+        for x in range(4, 12): f[2][x] = W; f[13][x] = W  # top/bottom bars
+        f[3][4] = W; f[3][11] = W; f[12][4] = W; f[12][11] = W
+        f[4][5] = W; f[4][10] = W; f[11][5] = W; f[11][10] = W
+        f[5][6] = W; f[5][9] = W; f[10][6] = W; f[10][9] = W
+        f[6][7] = W; f[6][8] = W; f[9][7] = W; f[9][8] = W
+        f[7][7] = W; f[7][8] = W  # neck
+
+        if phase == 0:  # sand on top, empty bottom
+            for x in range(5, 11): f[3][x] = S
+            for x in range(6, 10): f[4][x] = S
+            f[5][7] = S; f[5][8] = S
+        elif phase == 1:  # sand flowing through neck
+            for x in range(5, 11): f[3][x] = S
+            for x in range(7, 9): f[4][x] = S
+            f[8][7] = Sd; f[8][8] = Sd  # falling grain
+            for x in range(7, 9): f[12][x] = S
+        elif phase == 2:  # half and half
+            for x in range(6, 10): f[3][x] = S
+            f[8][7] = Sd; f[8][8] = Sd
+            for x in range(6, 10): f[11][x] = S
+            for x in range(7, 9): f[12][x] = S
+        else:  # sand on bottom
+            f[8][7] = Sd; f[8][8] = Sd
+            for x in range(6, 10): f[10][x] = S
+            for x in range(5, 11): f[11][x] = S
+            for x in range(5, 11): f[12][x] = S
+
+        return f
+    return [_hourglass(0), _hourglass(1), _hourglass(2), _hourglass(3)], [600, 400, 400, 600]
+
+
+def idle():
+    """Zzz — sleeping/idle animation."""
+    BG = _
+    B = (80, 130, 255)   # blue z
+    Bd = (50, 80, 180)   # dim z
+    G = (60, 60, 80)     # dark face
+
+    def _zzz(phase):
+        f = _empty()
+        # Sleeping face at bottom
+        for x in range(5, 11): f[12][x] = G  # chin
+        f[11][4] = G; f[11][11] = G
+        for x in range(5, 11): f[10][x] = G
+        f[10][5] = G; f[10][10] = G
+        # Closed eyes (horizontal lines)
+        f[10][6] = (100, 100, 120); f[10][7] = (100, 100, 120)  # left eye shut
+        f[10][8] = (100, 100, 120); f[10][9] = (100, 100, 120)  # right eye shut
+
+        if phase == 0:
+            # Small z
+            f[7][9] = B; f[7][10] = B; f[7][11] = B
+            f[8][10] = B
+            f[9][9] = B; f[9][10] = B; f[9][11] = B
+        elif phase == 1:
+            # Small z + medium Z
+            f[7][9] = Bd; f[7][10] = Bd; f[7][11] = Bd
+            f[8][10] = Bd
+            f[9][9] = Bd; f[9][10] = Bd; f[9][11] = Bd
+            f[3][8] = B; f[3][9] = B; f[3][10] = B; f[3][11] = B
+            f[4][10] = B
+            f[5][9] = B
+            f[6][8] = B; f[6][9] = B; f[6][10] = B; f[6][11] = B
+        elif phase == 2:
+            # Medium Z fading + big Z
+            f[3][8] = Bd; f[3][9] = Bd; f[3][10] = Bd; f[3][11] = Bd
+            f[4][10] = Bd; f[5][9] = Bd
+            f[6][8] = Bd; f[6][9] = Bd; f[6][10] = Bd; f[6][11] = Bd
+            # Big Z top area
+            for x in range(3, 8): f[2][x] = B
+            f[3][6] = B; f[4][5] = B
+            for x in range(3, 8): f[5][x] = B
+        else:
+            # All faded, restart
+            for x in range(3, 8): f[2][x] = Bd
+            f[3][6] = Bd; f[4][5] = Bd
+            for x in range(3, 8): f[5][x] = Bd
+
+        return f
+    return [_zzz(0), _zzz(1), _zzz(2), _zzz(3)], [700, 700, 700, 500]
+
+
 # =============================================
 #  Registry
 # =============================================
@@ -1406,4 +1498,6 @@ PRESETS = {
     "saving": ("Floppy disk", saving),
     "syncing": ("Sync arrows", syncing),
     "done": ("Fireworks", done),
+    "waiting": ("Hourglass", waiting),
+    "idle": ("Zzz sleep", idle),
 }

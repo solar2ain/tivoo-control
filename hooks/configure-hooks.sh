@@ -27,9 +27,9 @@ LUNA_PRESETS="$TIVOO_DIR/emotion_presets_luna.py"
 # DEFAULT=1 means enabled by default, 0 means opt-in only
 HOOK_MAP=(
   # Needs user attention (default enabled)
-  "Stop:done:3:完成啦，等待指示:Done, awaiting instructions:1"
+  "Stop:success+waiting:3:完成啦，等待指示:Done, awaiting instructions:1"
   "StopFailure:error:3:出错了，快来看看:Error, come take a look:1"
-  "Notification:star:5:通知来啦:Heads up:1"
+  "Notification:notify:5:通知来啦:Heads up:1"
   "PermissionRequest:waiting:5:等待授权:Approval needed:1"
   "Elicitation:coding:5:等待输入:Input needed:1"
   "TeammateIdle:idle:5:队友闲置:Teammate idle:1"
@@ -192,6 +192,8 @@ for entry in "${HOOK_MAP[@]}"; do
   # Write individual hook script
   EVENT_LOWER=$(echo "$EVENT" | tr '[:upper:]' '[:lower:]')
   HOOK_SCRIPT="$HOOKS_DIR/on-${EVENT_LOWER}.sh"
+
+  # Common header: shebang + comment + logging
   cat > "$HOOK_SCRIPT" << 'HOOKEOF'
 #!/bin/bash
 HOOKEOF
@@ -213,10 +215,56 @@ INPUT=$(cat)
 } >> "$LOG_FILE"
 
 HOOKEOF
-  cat >> "$HOOK_SCRIPT" << HOOKEOF
+
+  # Event-specific body
+  if [[ "$EVENT" == "Stop" ]]; then
+    # Stop: show success first, then transition to waiting
+    cat >> "$HOOK_SCRIPT" << HOOKEOF
+(
+  python3 $TIVOO_PY preset success --loop 2$LOAD_FLAG 2>/dev/null
+  python3 $TIVOO_PY preset waiting --loop 3$LOAD_FLAG 2>/dev/null
+) &
+HOOKEOF
+    if $WANT_TTS; then
+      cat >> "$HOOK_SCRIPT" << HOOKEOF
+
+say -v $TTS_VOICE "$TTS_TEXT" 2>/dev/null &
+HOOKEOF
+    fi
+
+  elif [[ "$EVENT" == "Notification" ]]; then
+    # Notification: read message from JSON input and speak it
+    cat >> "$HOOK_SCRIPT" << HOOKEOF
+(
+  python3 $TIVOO_PY preset $PRESET --loop $LOOP$LOAD_FLAG 2>/dev/null
+) &
+HOOKEOF
+    if $WANT_TTS; then
+      cat >> "$HOOK_SCRIPT" << 'HOOKEOF'
+
+# Extract notification message and speak it
+MSG=$(echo "$INPUT" | jq -r '.message // .title // .text // empty' 2>/dev/null)
+HOOKEOF
+      cat >> "$HOOK_SCRIPT" << HOOKEOF
+if [[ -n "\$MSG" ]]; then
+  say -v $TTS_VOICE "$TTS_TEXT" 2>/dev/null
+  say -v $TTS_VOICE "\$MSG" 2>/dev/null &
+else
+  say -v $TTS_VOICE "$TTS_TEXT" 2>/dev/null &
+fi
+HOOKEOF
+    fi
+
+  else
+    # Standard: single preset + optional TTS
+    cat >> "$HOOK_SCRIPT" << HOOKEOF
 (
   $CMD
 ) &
+HOOKEOF
+  fi
+
+  cat >> "$HOOK_SCRIPT" << 'HOOKEOF'
 
 exit 0
 HOOKEOF

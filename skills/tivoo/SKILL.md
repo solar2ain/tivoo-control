@@ -82,7 +82,7 @@ Use `--duration 0` or `--loop 0` for permanent display (no auto-restore).
 
 ### Presets
 
-41 animated presets (run `preset` without args to list all):
+42 animated presets (run `preset` without args to list all):
 
 - **Emoji**: heart, smiley, star, thumbs-up
 - **Weather**: sun, moon, cloud, rain, snow, lightning

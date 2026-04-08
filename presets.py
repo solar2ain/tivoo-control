@@ -1447,6 +1447,69 @@ def idle():
     return [_zzz(0), _zzz(1), _zzz(2), _zzz(3)], [700, 700, 700, 500]
 
 
+def notify():
+    """Notification bell ringing."""
+    BG = _
+    G = (255, 200, 50)   # gold bell
+    Gd = (200, 150, 30)  # dark gold
+    W = (255, 255, 255)  # clapper / highlight
+    R = (255, 60, 60)    # notification dot
+
+    def _bell(phase):
+        f = _empty()
+        # Bell body shifts left/right for ringing effect
+        ox = [-1, 0, 1, 0][phase]
+
+        # Handle (top)
+        f[2][7 + ox] = Gd; f[2][8 + ox] = Gd
+        f[1][7 + ox] = Gd; f[1][8 + ox] = Gd
+
+        # Bell dome
+        for x in range(5, 11):
+            cx = x + ox
+            if 0 <= cx < 16:
+                f[3][cx] = G
+        for x in range(4, 12):
+            cx = x + ox
+            if 0 <= cx < 16:
+                f[4][cx] = G
+                f[5][cx] = G
+                f[6][cx] = G
+                f[7][cx] = G
+        for x in range(3, 13):
+            cx = x + ox
+            if 0 <= cx < 16:
+                f[8][cx] = G
+                f[9][cx] = G
+        # Bell rim
+        for x in range(2, 14):
+            cx = x + ox
+            if 0 <= cx < 16:
+                f[10][cx] = Gd
+
+        # Clapper
+        f[11][7 + ox] = W; f[11][8 + ox] = W
+        f[12][7 + ox] = W; f[12][8 + ox] = W
+
+        # Highlight on bell
+        if 0 <= 5 + ox < 16:
+            f[5][5 + ox] = (255, 230, 120)
+            f[6][5 + ox] = (255, 230, 120)
+
+        # Notification dot (top-right, stays fixed)
+        f[1][11] = R; f[1][12] = R
+        f[2][11] = R; f[2][12] = R
+
+        # Ring lines when tilted
+        if phase == 0:  # tilted left
+            f[3][2] = W; f[4][1] = W
+        elif phase == 2:  # tilted right
+            f[3][13] = W; f[4][14] = W
+
+        return f
+    return [_bell(0), _bell(1), _bell(2), _bell(3)], [200, 300, 200, 300]
+
+
 # =============================================
 #  Registry
 # =============================================
@@ -1500,4 +1563,5 @@ PRESETS = {
     "done": ("Fireworks", done),
     "waiting": ("Hourglass", waiting),
     "idle": ("Zzz sleep", idle),
+    "notify": ("Notification bell", notify),
 }

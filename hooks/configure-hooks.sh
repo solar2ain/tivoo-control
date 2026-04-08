@@ -221,7 +221,7 @@ HOOKEOF
     # Stop: show success (3 loops ≈ 3.3s), then transition to waiting
     cat >> "$HOOK_SCRIPT" << HOOKEOF
 (
-  python3 $TIVOO_PY preset success --loop 3 --duration 0$LOAD_FLAG 2>/dev/null
+  python3 $TIVOO_PY preset success --loop 3$LOAD_FLAG 2>/dev/null
   sleep 4
   python3 $TIVOO_PY preset waiting --loop 3$LOAD_FLAG 2>/dev/null
 ) &

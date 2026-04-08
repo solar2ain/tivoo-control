@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 """
-Tivoo macOS Control Script
+Tivoo Control Script
 
-Control a Divoom Tivoo 16x16 pixel screen via macOS IOBluetooth framework.
+Control a Divoom Tivoo 16x16 pixel screen via Bluetooth RFCOMM.
 Uses compiled tivoo_cmd binary to send RFCOMM commands.
+
+Configuration:
+    Set TIVOO_MAC environment variable to your device's Bluetooth MAC address.
+    Default: 11:75:58:8C:5B:0C
 
 Usage:
     python3 tivoo_macos.py brightness 50           # Set brightness 0-100
@@ -31,6 +35,7 @@ import click
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 TIVOO_CMD = os.path.join(SCRIPT_DIR, "tivoo_cmd")
+DEVICE_MAC = os.environ.get("TIVOO_MAC", "11:75:58:8C:5B:0C")
 SCREEN_SIZE = 16
 ANIM_CHUNK_SIZE = 200
 
@@ -109,7 +114,7 @@ def _run_tivoo_cmd(args, timeout=15):
 
 def send_cmd(*hex_bytes):
     """Send a single command."""
-    args = [TIVOO_CMD] + [
+    args = [TIVOO_CMD, "-a", DEVICE_MAC] + [
         f"{b:02x}" if isinstance(b, int) else str(b) for b in hex_bytes
     ]
     ok, _ = _run_tivoo_cmd(args)
@@ -121,7 +126,7 @@ def send_session(payloads, timeout=30):
     Session mode: keep connection open, send multiple payloads.
     payloads: list of list[int], each is a payload byte list.
     """
-    args = [TIVOO_CMD, "-s"]
+    args = [TIVOO_CMD, "-a", DEVICE_MAC, "-s"]
     for i, payload in enumerate(payloads):
         if i > 0:
             args.append("--")
@@ -336,7 +341,7 @@ def flash(count):
 @cli.command()
 def status():
     """Query device status."""
-    ok, lines = _run_tivoo_cmd([TIVOO_CMD, "46"])
+    ok, lines = _run_tivoo_cmd([TIVOO_CMD, "-a", DEVICE_MAC, "46"])
     if not ok:
         return
 

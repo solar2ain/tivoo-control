@@ -6,9 +6,11 @@ Control a [Divoom Tivoo](https://divoom.com) 16x16 pixel screen from macOS via B
 
 - **Brightness, clock, light effects** — basic device control
 - **Images** — send any PNG/JPG/GIF, auto-resized to 16x16
-- **Scrolling text** — with Unifont pixel font, supports CJK characters
+- **Scrolling text** — with Unifont pixel font, supports CJK characters, configurable font/size/speed
 - **Animations** — from image directories or GIF files
-- **Preset pixel art** — 23 built-in patterns (heart, smiley, weather, animals, etc.)
+- **39 animated presets** — pixel art with multi-frame animations (heart, weather, animals, workflow icons, etc.)
+- **13 emotion presets** — animated face expressions (happy, sad, angry, love, etc.)
+- **Custom preset loading** — load external preset files via `--load`
 - **AI pixel art** — generate pixel art via Claude CLI or Anthropic API
 - **Compose animations** — stage multiple segments (preset + text + image) and send as one animation
 - **Auto-restore clock** — display content for a set duration/loops, then switch back to clock mode
@@ -36,6 +38,10 @@ python3 tivoo_macos.py preset heart
 python3 tivoo_macos.py text "Hello World" --color cyan
 python3 tivoo_macos.py image photo.png
 
+# Emotion presets
+python3 tivoo_macos.py preset happy
+python3 tivoo_macos.py preset happy --load emotion_presets_luna.py
+
 # Compose multi-segment animation
 python3 tivoo_macos.py prepare clear
 python3 tivoo_macos.py prepare preset star --duration 2000
@@ -54,9 +60,9 @@ Run `python3 tivoo_macos.py -h` for full help. Every subcommand supports `-h`.
 | `light <color>` | Light effect (color name or #RRGGBB) |
 | `off` / `on` | Turn screen off/on |
 | `image <path>` | Display image (--duration 12s, then restore clock) |
-| `text <text>` | Scrolling text (--loop 3, --speed, --size 8-16, --font) |
+| `text <text>` | Scrolling text (--loop, --speed, --size, --font, --step) |
 | `anim <path>` | Animation from directory or GIF (--loop 3, --delay) |
-| `preset [name]` | Preset pixel art (--duration 12s; no args = list all) |
+| `preset [name]` | Preset pixel art (--duration 12s, --load; no args = list all) |
 | `ai <prompt>` | AI-generated pixel art |
 | `prepare <sub>` | Stage animation: `preset`, `text`, `image`, `clear`, `info` |
 | `send [file]` | Send staged animation (--loop 3, --clean) |
@@ -64,11 +70,13 @@ Run `python3 tivoo_macos.py -h` for full help. Every subcommand supports `-h`.
 
 ## Configuration
 
-The device MAC address is hardcoded in `tivoo_cmd.m` line 130. Edit and recompile for a different device:
+Set the `TIVOO_MAC` environment variable to your device's Bluetooth MAC address:
 
-```objc
-IOBluetoothDevice *dev = [IOBluetoothDevice deviceWithAddressString:@"11:75:58:8C:5B:0C"];
+```bash
+export TIVOO_MAC="AA:BB:CC:DD:EE:FF"
 ```
+
+Default: `11:75:58:8C:5B:0C`. The MAC is passed to `tivoo_cmd` via the `-a` flag.
 
 ## Claude Code Skill
 

@@ -24,7 +24,13 @@ Requires Xcode Command Line Tools. If not installed: `xcode-select --install`
 
 ### 2. Configure Device MAC Address
 
-Default MAC is hardcoded as `11:75:58:8C:5B:0C`. For a different Tivoo device, edit the address in `scripts/tivoo_cmd.m` and recompile.
+Set the `TIVOO_MAC` environment variable to your device's Bluetooth MAC address:
+
+```bash
+export TIVOO_MAC="AA:BB:CC:DD:EE:FF"
+```
+
+Default: `11:75:58:8C:5B:0C`. No recompilation needed — the MAC is passed via `-a` flag at runtime.
 
 ### 3. Install Python Dependencies
 
@@ -57,9 +63,9 @@ python3 scripts/tivoo_macos.py <command>
 | `light <color>` | `light #FF6600` | Light effect color |
 | `off` / `on` | `off` | Turn screen off/on |
 | `image <path>` | `image cat.png` | Send image (--duration 12) |
-| `text <text>` | `text Hello` | Scrolling text (--loop 3) |
+| `text <text>` | `text Hello` | Scrolling text (--loop 3, --font, --size) |
 | `anim <dir\|gif>` | `anim frames/` | Send animation (--loop 3) |
-| `preset <name>` | `preset heart` | Preset pixel art (--duration 12) |
+| `preset <name>` | `preset heart` | Animated preset (--duration 12, --load) |
 | `ai <prompt>` | `ai "a cat"` | AI-generated pixel art |
 | `ai-anim <prompt>` | `ai-anim "fire"` | AI-generated animation |
 | `raw <hex...>` | `raw 74 64` | Raw hex command |
@@ -73,6 +79,29 @@ All commands support `-h` / `--help` for detailed options.
 By default, static commands (`image`, `preset`) display for 12 seconds then restore clock mode (`clock 1`). Animation commands (`text`, `anim`, `send`) loop 3 times then restore.
 
 Use `--duration 0` or `--loop 0` for permanent display (no auto-restore).
+
+### Presets
+
+39 animated presets (run `preset` without args to list all):
+
+- **Emoji**: heart, smiley, star, thumbs-up
+- **Weather**: sun, moon, cloud, rain, snow, lightning
+- **Animals**: cat, dog, fish
+- **Nature**: flower, tree, fire
+- **Symbols**: check, cross, music, ghost, skull, gradient, rainbow
+- **Workflow**: working, thinking, error, success, coding, loading, building, deploying, testing, searching, downloading, uploading, debugging, saving, syncing, done
+
+13 built-in emotion presets: happy, sad, angry, love, cool, cry, laugh, sleepy, shock, wink, sick, party, kiss
+
+#### Custom Presets (--load)
+
+Load external preset files to override or add presets:
+
+```bash
+python3 scripts/tivoo_macos.py preset happy --load emotion_presets_luna.py
+```
+
+External files export `PRESETS` and/or `EMOTIONS` dicts. Same-name entries override built-in ones.
 
 ### Clock Options
 
@@ -141,8 +170,8 @@ Or use preset patterns:
 
 ```bash
 python3 scripts/tivoo_macos.py preset heart      # Heart
-python3 scripts/tivoo_macos.py preset smiley     # Smiley
-python3 scripts/tivoo_macos.py preset gradient   # Gradient test
+python3 scripts/tivoo_macos.py preset working    # Workflow
+python3 scripts/tivoo_macos.py preset happy      # Emotion
 ```
 
 ## Protocol Extension

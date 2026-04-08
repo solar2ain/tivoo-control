@@ -87,20 +87,31 @@ static void sendAndRecv(IOBluetoothRFCOMMChannel *ch, NSData *payload, NSTimeInt
 int main(int argc, const char *argv[]) {
     @autoreleasepool {
         if (argc < 2) {
-            NSLog(@"用法: tivoo_cmd [-s] <hex_payload> [hex_payload2] ...");
+            NSLog(@"用法: tivoo_cmd [-a MAC] [-s] <hex_payload> [hex_payload2] ...");
+            NSLog(@"  -a    设备 MAC 地址（默认 11:75:58:8C:5B:0C）");
             NSLog(@"  -s    会话模式：保持连接，发送多个 payload（用 -- 分隔）");
             NSLog(@"");
             NSLog(@"  示例: tivoo_cmd 74 64           (亮度 100%%)");
+            NSLog(@"        tivoo_cmd -a AA:BB:CC:DD:EE:FF 74 64");
             NSLog(@"        tivoo_cmd -s 74 64 -- 45 00 00  (先设亮度再切时钟)");
             return 1;
         }
 
+        NSString *macAddress = @"11:75:58:8C:5B:0C";
         BOOL sessionMode = NO;
         int startArg = 1;
 
-        if (argc > 1 && strcmp(argv[1], "-s") == 0) {
-            sessionMode = YES;
-            startArg = 2;
+        // Parse flags
+        while (startArg < argc) {
+            if (strcmp(argv[startArg], "-a") == 0 && startArg + 1 < argc) {
+                macAddress = [NSString stringWithUTF8String:argv[startArg + 1]];
+                startArg += 2;
+            } else if (strcmp(argv[startArg], "-s") == 0) {
+                sessionMode = YES;
+                startArg += 1;
+            } else {
+                break;
+            }
         }
 
         // 收集所有 payload（用 -- 分隔多个命令）
@@ -127,7 +138,7 @@ int main(int argc, const char *argv[]) {
             return 1;
         }
 
-        IOBluetoothDevice *dev = [IOBluetoothDevice deviceWithAddressString:@"11:75:58:8C:5B:0C"];
+        IOBluetoothDevice *dev = [IOBluetoothDevice deviceWithAddressString:macAddress];
         if (!dev) { NSLog(@"设备未找到"); return 1; }
 
         if (![dev isConnected]) {

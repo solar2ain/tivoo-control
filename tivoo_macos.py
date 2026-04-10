@@ -428,7 +428,7 @@ def image(path, duration):
 @click.option("--step", default=2, type=click.IntRange(1, 8), help="Pixels per scroll step")
 @click.option("--size", default=None, type=click.IntRange(8, 16), help="Font size (auto: 9=EN, 12=CJK)")
 @click.option("--font", default=None, type=click.Choice(FONT_NAMES, case_sensitive=False), help="Font name")
-@click.option("--loop", default=3, type=int, help="Loop count (0=infinite)")
+@click.option("--loop", default=5, type=int, help="Loop count (0=infinite)")
 def text(text, color, bg, speed, step, size, font, loop):
     """Display scrolling text."""
     print(f"Generating text animation: \"{text}\"")
@@ -443,7 +443,7 @@ def text(text, color, bg, speed, step, size, font, loop):
 @cli.command()
 @click.argument("path", type=click.Path(exists=True))
 @click.option("-d", "--delay", default=100, type=int, help="Frame delay (ms)")
-@click.option("--loop", default=3, type=int, help="Loop count (0=infinite)")
+@click.option("--loop", default=5, type=int, help="Loop count (0=infinite)")
 def anim(path, delay, loop):
     """Send animation (image directory or GIF file)."""
     from PIL import Image
@@ -654,7 +654,7 @@ def _load_all_presets(load_files=None):
 @cli.command()
 @click.argument("name", required=False)
 @click.option("--duration", default=12, type=int, help="Display seconds (0=forever)")
-@click.option("--loop", default=3, type=int, help="Loop count for animations (0=infinite)")
+@click.option("--loop", default=5, type=int, help="Loop count for animations (0=infinite)")
 @click.option("--load", "load_files", multiple=True, type=click.Path(exists=True), help="Load custom preset file(s)")
 def preset(name, duration, loop, load_files):
     """Send preset pixel art pattern.
@@ -993,7 +993,7 @@ def prepare_info(output):
 @cli.command()
 @click.argument("file", default=None, required=False, type=click.Path())
 @click.option("--clean", is_flag=True, help="Delete stage file after sending")
-@click.option("--loop", default=3, type=int, help="Loop count (0=infinite)")
+@click.option("--loop", default=5, type=int, help="Loop count (0=infinite)")
 def send(file, clean, loop):
     """Send staged animation frames.
 

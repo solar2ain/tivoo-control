@@ -1,16 +1,17 @@
 #!/bin/bash
 # Configure Claude Code hooks for Tivoo pixel screen notifications
+# Uses Claude emotion presets (--load claude) by default.
 #
 # Usage:
-#   ./configure-hooks.sh                    # Apply default hooks (Chinese TTS)
-#   ./configure-hooks.sh --lang en          # Apply default hooks (English TTS)
-#   ./configure-hooks.sh --all              # Enable all hooks
-#   ./configure-hooks.sh --dry-run          # Print config without applying
-#   ./configure-hooks.sh --events Stop,Notification  # Only these events
-#   ./configure-hooks.sh --tts Stop,StopFailure      # TTS for these events
-#   ./configure-hooks.sh --no-tts           # Disable all TTS
-#   ./configure-hooks.sh --luna             # Use Luna emotion presets
-#   ./configure-hooks.sh --reset            # Remove all Tivoo hooks
+#   ./configure-claude-hooks.sh                    # Apply default hooks (English TTS)
+#   ./configure-claude-hooks.sh -l zh              # Chinese TTS for Notification
+#   ./configure-claude-hooks.sh --all              # Enable all hooks
+#   ./configure-claude-hooks.sh --dry-run          # Print config without applying
+#   ./configure-claude-hooks.sh --events Stop,Notification  # Only these events
+#   ./configure-claude-hooks.sh --tts Stop,StopFailure      # TTS for extra events
+#   ./configure-claude-hooks.sh --no-tts           # Disable all TTS
+#   ./configure-claude-hooks.sh --no-load          # Use generic presets instead
+#   ./configure-claude-hooks.sh --reset            # Remove all Tivoo hooks
 #
 # Requires: jq, python3, tivoo_macos.py
 
@@ -20,50 +21,50 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TIVOO_DIR="$(dirname "$SCRIPT_DIR")"
 TIVOO_PY="$TIVOO_DIR/tivoo_macos.py"
 SETTINGS_FILE="$HOME/.claude/settings.json"
-LUNA_PRESETS="$TIVOO_DIR/emotion_presets_luna.py"
 
 # ── Event → Preset mapping ──────────────────────────────────────────
 # Format: EVENT:PRESET:LOOP:TTS_CN:TTS_EN:DEFAULT
 # DEFAULT=1 means enabled by default, 0 means opt-in only
+# TTS only on Notification by default — other events use emotion only
 HOOK_MAP=(
   # Needs user attention (default enabled)
-  "Stop:success:5:完成啦，等待指示:Done, awaiting instructions:1"
-  "StopFailure:error:5:出错了，快来看看:Error, come take a look:1"
+  "Stop:done:5:::1"
+  "StopFailure:oops:5:::1"
   "Notification:notify:5:通知来啦:Heads up:1"
-  "PermissionRequest:waiting:5:等待授权:Approval needed:1"
-  "Elicitation:coding:5:等待输入:Input needed:1"
-  "TeammateIdle:idle:5:队友闲置:Teammate idle:1"
+  "PermissionRequest:question:5:::1"
+  "Elicitation:question:5:::1"
+  "TeammateIdle:standby:5:::1"
   # Progress feedback (opt-in)
-  "UserPromptSubmit:searching:2:::0"
-  "TaskCreated:building:2:::0"
-  "TaskCompleted:check:2:子任务完成:Task done:0"
-  "SubagentStart:working:2:::0"
-  "SubagentStop:check:2:::0"
+  "UserPromptSubmit:working:2:::1"
+  "TaskCreated:tasklist:2:::0"
+  "TaskCompleted:taskdone:2:::0"
+  "SubagentStart:subagent:2:::0"
+  "SubagentStop:taskdone:2:::0"
   # Errors (opt-in)
-  "PostToolUseFailure:cross:2:::0"
-  "PermissionDenied:cross:2:::0"
+  "PostToolUseFailure:oops:2:::0"
+  "PermissionDenied:oops:2:::0"
 )
 
 # ── Parse arguments ──────────────────────────────────────────────────
 DRY_RUN=false
-USE_LUNA=false
+NO_LOAD=false
 RESET=false
 ALL_EVENTS=false
 NO_TTS=false
-LANG="cn"
+LANG="en"
 FILTER_EVENTS=""
 TTS_EVENTS=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --dry-run)  DRY_RUN=true; shift ;;
-    --luna)     USE_LUNA=true; shift ;;
-    --reset)    RESET=true; shift ;;
-    --all)      ALL_EVENTS=true; shift ;;
-    --no-tts)   NO_TTS=true; shift ;;
-    --lang)     LANG="$2"; shift 2 ;;
-    --events)   FILTER_EVENTS="$2"; shift 2 ;;
-    --tts)      TTS_EVENTS="$2"; shift 2 ;;
+    --dry-run)   DRY_RUN=true; shift ;;
+    --no-load)   NO_LOAD=true; shift ;;
+    --reset)     RESET=true; shift ;;
+    --all)       ALL_EVENTS=true; shift ;;
+    --no-tts)    NO_TTS=true; shift ;;
+    --lang|-l)   LANG="$2"; shift 2 ;;
+    --events)    FILTER_EVENTS="$2"; shift 2 ;;
+    --tts)       TTS_EVENTS="$2"; shift 2 ;;
     -h|--help)
       sed -n '2,/^$/s/^# //p' "$0"
       echo ""
@@ -81,13 +82,13 @@ while [[ $# -gt 0 ]]; do
       echo "  * = enabled by default"
       echo ""
       echo "Options:"
-      echo "  --lang cn|en    TTS language (default: cn)"
+      echo "  -l, --lang en|zh  TTS language (default: en)"
       echo "  --dry-run       Print config without applying"
       echo "  --all           Enable all events"
       echo "  --events E,...  Enable only listed events"
-      echo "  --tts E,...     TTS only for listed events"
+      echo "  --tts E,...     TTS for extra events (Notification always has TTS)"
       echo "  --no-tts        Disable all TTS"
-      echo "  --luna          Use Luna emotion presets"
+      echo "  --no-load       Use generic presets instead of Claude emotions"
       echo "  --reset         Remove all Tivoo hooks"
       exit 0
       ;;
@@ -95,9 +96,14 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# Normalize zh → cn
+if [[ "$LANG" == "zh" ]]; then
+  LANG="cn"
+fi
+
 # Validate --lang
 if [[ "$LANG" != "cn" && "$LANG" != "en" ]]; then
-  echo "Error: --lang must be 'cn' or 'en'"
+  echo "Error: -l/--lang must be 'en' or 'zh'"
   exit 1
 fi
 
@@ -145,10 +151,16 @@ in_list() {
 }
 
 # ── Build hook shell scripts ─────────────────────────────────────────
-HOOKS_DIR="$SCRIPT_DIR/generated"
+HOOKS_DIR="$SCRIPT_DIR/generated-claude"
 mkdir -p "$HOOKS_DIR"
 
 HOOKS_JSON='{}'
+
+# Default: --load claude (Claude emotions)
+LOAD_FLAG=" --load claude"
+if $NO_LOAD; then
+  LOAD_FLAG=""
+fi
 
 for entry in "${HOOK_MAP[@]}"; do
   IFS=: read -r EVENT PRESET LOOP TTS_CN TTS_EN DEFAULT <<< "$entry"
@@ -167,13 +179,8 @@ for entry in "${HOOK_MAP[@]}"; do
     TTS_TEXT="$TTS_EN"
   fi
 
-  # Build the shell command
-  LOAD_FLAG=""
-  if $USE_LUNA; then
-    LOAD_FLAG=" --load $LUNA_PRESETS"
-  fi
-
   PRESET_CMD="python3 $TIVOO_PY preset $PRESET --loop $LOOP$LOAD_FLAG"
+  STANDBY_CMD="python3 $TIVOO_PY preset standby --loop 0$LOAD_FLAG"
 
   # Check if TTS is applicable
   WANT_TTS=false
@@ -195,7 +202,7 @@ for entry in "${HOOK_MAP[@]}"; do
 HOOKEOF
   cat >> "$HOOK_SCRIPT" << HOOKEOF
 # Tivoo hook: $EVENT → $PRESET (loop $LOOP)
-# Auto-generated by configure-hooks.sh
+# Auto-generated by configure-claude-hooks.sh
 HOOKEOF
   cat >> "$HOOK_SCRIPT" << 'HOOKEOF'
 
@@ -213,21 +220,10 @@ INPUT=$(cat)
 HOOKEOF
 
   # Event-specific body — all background processes fully detached
-  if [[ "$EVENT" == "Stop" ]]; then
-    # Stop: show success
-    cat >> "$HOOK_SCRIPT" << HOOKEOF
-python3 $TIVOO_PY preset success --loop 5$LOAD_FLAG </dev/null >/dev/null 2>&1 &
-HOOKEOF
-    if $WANT_TTS; then
-      cat >> "$HOOK_SCRIPT" << HOOKEOF
-say -v $TTS_VOICE "$TTS_TEXT" </dev/null >/dev/null 2>&1 &
-HOOKEOF
-    fi
-
-  elif [[ "$EVENT" == "Notification" ]]; then
+  if [[ "$EVENT" == "Notification" ]]; then
     # Notification: read message from JSON input and speak it
     cat >> "$HOOK_SCRIPT" << HOOKEOF
-$PRESET_CMD </dev/null >/dev/null 2>&1 &
+($PRESET_CMD && $STANDBY_CMD) </dev/null >/dev/null 2>&1 &
 HOOKEOF
     if $WANT_TTS; then
       cat >> "$HOOK_SCRIPT" << 'HOOKEOF'
@@ -248,9 +244,9 @@ HOOKEOF
     fi
 
   else
-    # Standard: single preset + optional TTS, fully detached
+    # Standard: preset → standby, fully detached
     cat >> "$HOOK_SCRIPT" << HOOKEOF
-$PRESET_CMD </dev/null >/dev/null 2>&1 &
+($PRESET_CMD && $STANDBY_CMD) </dev/null >/dev/null 2>&1 &
 HOOKEOF
     if $WANT_TTS; then
       cat >> "$HOOK_SCRIPT" << HOOKEOF
@@ -284,7 +280,7 @@ RESULT=$(echo "$EXISTING" | jq --argjson hooks "$HOOKS_JSON" '.hooks = $hooks')
 
 if $DRY_RUN; then
   echo "=== Generated hook scripts in $HOOKS_DIR ==="
-  ls -1 "$HOOKS_DIR"/
+  ls -1 "$HOOKS_DIR"/on-*.sh 2>/dev/null || echo "(none)"
   echo ""
   echo "=== Settings JSON ==="
   echo "$RESULT" | jq .
@@ -293,7 +289,7 @@ else
 
   # Count enabled hooks
   COUNT=$(echo "$HOOKS_JSON" | jq 'length')
-  echo "Configured $COUNT Tivoo hooks ($LANG) in $SETTINGS_FILE"
+  echo "Configured $COUNT Claude Code hooks ($LANG) in $SETTINGS_FILE"
   echo "Hook scripts in $HOOKS_DIR/"
   echo ""
   echo "Enabled events:"

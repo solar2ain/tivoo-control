@@ -19,7 +19,7 @@ Usage:
     python3 tivoo_macos.py preset heart            # Animated preset
     python3 tivoo_macos.py preset working          # Workflow animation
     python3 tivoo_macos.py preset happy            # Emotion animation
-    python3 tivoo_macos.py preset happy --load emotion_presets_luna.py
+    python3 tivoo_macos.py preset happy --load luna
     python3 tivoo_macos.py ai "a cat"              # AI-generated pixel art
     python3 tivoo_macos.py raw 74 64               # Raw hex command
 """
@@ -38,6 +38,31 @@ TIVOO_CMD = os.path.join(SCRIPT_DIR, "tivoo_cmd")
 DEVICE_MAC = os.environ.get("TIVOO_MAC", "11:75:58:8C:5B:0C")
 SCREEN_SIZE = 16
 ANIM_CHUNK_SIZE = 200
+CONFIG_FILE = os.path.join(SCRIPT_DIR, "config.local.json")
+
+_DEFAULT_CONFIG = {
+    "default": "clock 1",
+    "ai": {
+        "provider": "claude-cli",
+        "api_url": None,
+        "api_key": None,
+        "model": None,
+    },
+}
+
+
+def _load_config():
+    """Load config from config.local.json, filling missing fields with defaults."""
+    config = dict(_DEFAULT_CONFIG)
+    if os.path.exists(CONFIG_FILE):
+        with open(CONFIG_FILE) as f:
+            user = json.load(f)
+        for k, v in user.items():
+            if k == "ai" and isinstance(v, dict):
+                config["ai"] = {**_DEFAULT_CONFIG["ai"], **v}
+            else:
+                config[k] = v
+    return config
 
 COLORS = {
     "red": (255, 0, 0),
@@ -623,46 +648,72 @@ def raw(hex_bytes):
     send_cmd(*hex_bytes)
 
 
+def _resolve_load_path(name):
+    """Resolve --load shorthand to file path.
+
+    'default' → built-in (no file needed)
+    'luna' → emotion_presets_luna.py
+    'claude' → emotion_presets_claude.py
+    Other → treat as file path directly
+    """
+    if name == "default":
+        return None
+    # Check shorthand: name → presets/emotion_presets_{name}.py
+    shorthand = os.path.join(os.path.dirname(__file__) or ".", "presets", f"emotion_presets_{name}.py")
+    if os.path.exists(shorthand):
+        return shorthand
+    # Treat as direct file path
+    if os.path.exists(name):
+        return name
+    raise click.BadParameter(f"Cannot find preset '{name}' (tried {shorthand} and {name})")
+
+
 def _load_from_files(paths):
     """Load presets from external .py files. Returns (presets, emotions)."""
     presets, emotions = {}, {}
     for p in paths:
-        spec = importlib.util.spec_from_file_location("custom", os.path.abspath(p))
+        resolved = _resolve_load_path(p)
+        if resolved is None:
+            continue  # 'default' — skip, built-in already loaded
+        spec = importlib.util.spec_from_file_location("custom", os.path.abspath(resolved))
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         presets.update(getattr(mod, "PRESETS", {}))
         emotions.update(getattr(mod, "EMOTIONS", {}))
-    return presets, emotions
+        hidden = getattr(mod, "HIDDEN_EMOTIONS", set())
+    return presets, emotions, hidden
 
 
 def _load_all_presets(load_files=None):
     """Load built-in + custom presets. Returns (presets, emotions)."""
-    from presets import PRESETS
-    from emotion_presets import EMOTION_PRESETS as EP
+    from presets.presets import PRESETS
+    from presets.emotion_presets import EMOTION_PRESETS as EP
 
     presets = dict(PRESETS)
     emotions = dict(EP)
+    hidden = set()
 
     if load_files:
-        cp, ce = _load_from_files(load_files)
+        cp, ce, ch = _load_from_files(load_files)
         presets.update(cp)
         emotions.update(ce)
+        hidden.update(ch)
 
-    return presets, emotions
+    return presets, emotions, hidden
 
 
 @cli.command()
 @click.argument("name", required=False)
 @click.option("--duration", default=12, type=int, help="Display seconds (0=forever)")
 @click.option("--loop", default=5, type=int, help="Loop count for animations (0=infinite)")
-@click.option("--load", "load_files", multiple=True, type=click.Path(exists=True), help="Load custom preset file(s)")
+@click.option("--load", "load_files", multiple=True, help="Load preset set: luna, claude, or file path")
 def preset(name, duration, loop, load_files):
     """Send preset pixel art pattern.
 
     Run without arguments to list all presets.
     Use --load to add custom presets from .py files.
     """
-    presets, emotions = _load_all_presets(load_files or None)
+    presets, emotions, hidden = _load_all_presets(load_files or None)
     all_presets = {**presets, **emotions}
 
     if not name:
@@ -672,7 +723,8 @@ def preset(name, duration, loop, load_files):
             print(f"    {key:14s}  {desc}")
         print(f"\n  Emotions:")
         for key, (desc, _) in emotions.items():
-            print(f"    {key:14s}  {desc}")
+            if key not in hidden:
+                print(f"    {key:14s}  {desc}")
         return
 
     if name not in all_presets:
@@ -739,38 +791,73 @@ def _parse_pixel_json(json_str):
 
 
 def _call_ai(system_msg, user_msg):
-    """Try calling an AI model to generate content."""
-    # Method 1: claude CLI
-    try:
-        result = subprocess.run(
-            ["claude", "--print", "-p", user_msg, "--system-prompt", system_msg],
-            capture_output=True, text=True, timeout=120
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            return result.stdout.strip()
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        pass
+    """Call AI model based on config.local.json provider setting."""
+    config = _load_config()
+    ai = config["ai"]
+    provider = ai["provider"]
 
-    # Method 2: anthropic SDK
-    try:
-        import anthropic
-        client = anthropic.Anthropic()
-        response = client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=4096,
-            system=system_msg,
-            messages=[{"role": "user", "content": user_msg}],
-        )
-        return response.content[0].text
-    except ImportError:
-        pass
-    except Exception:
-        pass
+    if provider == "claude-cli":
+        try:
+            result = subprocess.run(
+                ["claude", "--print", "-p", user_msg, "--system-prompt", system_msg],
+                capture_output=True, text=True, timeout=120
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                return result.stdout.strip()
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            pass
+        print("  Claude CLI not available. Install: https://claude.ai/code")
+        return None
 
-    print("  No AI backend available:")
-    print("    Option 1: Install Claude CLI (https://claude.ai/code)")
-    print("    Option 2: pip3 install anthropic && set ANTHROPIC_API_KEY")
-    return None
+    elif provider == "anthropic":
+        try:
+            import anthropic
+            api_key = ai["api_key"] or os.environ.get("ANTHROPIC_API_KEY")
+            if not api_key:
+                print("  No API key: set ai.api_key in config.local.json or ANTHROPIC_API_KEY env")
+                return None
+            kwargs = {"api_key": api_key}
+            if ai["api_url"]:
+                kwargs["base_url"] = ai["api_url"]
+            client = anthropic.Anthropic(**kwargs)
+            response = client.messages.create(
+                model=ai["model"] or "claude-sonnet-4-20250514",
+                max_tokens=4096,
+                system=system_msg,
+                messages=[{"role": "user", "content": user_msg}],
+            )
+            return response.content[0].text
+        except ImportError:
+            print("  anthropic SDK not installed: pip3 install anthropic")
+            return None
+
+    elif provider == "openai":
+        try:
+            import openai
+            api_key = ai["api_key"] or os.environ.get("OPENAI_API_KEY")
+            if not api_key:
+                print("  No API key: set ai.api_key in config.local.json or OPENAI_API_KEY env")
+                return None
+            kwargs = {"api_key": api_key}
+            if ai["api_url"]:
+                kwargs["base_url"] = ai["api_url"]
+            client = openai.OpenAI(**kwargs)
+            response = client.chat.completions.create(
+                model=ai["model"] or "gpt-4o",
+                messages=[
+                    {"role": "system", "content": system_msg},
+                    {"role": "user", "content": user_msg},
+                ],
+            )
+            return response.choices[0].message.content
+        except ImportError:
+            print("  openai SDK not installed: pip3 install openai")
+            return None
+
+    else:
+        print(f"  Unknown AI provider: {provider}")
+        print("  Supported: claude-cli, anthropic, openai")
+        return None
 
 
 def _preview_ascii(pixels):
@@ -906,11 +993,11 @@ def prepare():
 @prepare.command("preset")
 @click.argument("name")
 @click.option("--duration", default=2000, type=int, help="Duration (ms)")
-@click.option("--load", "load_files", multiple=True, type=click.Path(exists=True), help="Load custom preset file(s)")
+@click.option("--load", "load_files", multiple=True, help="Load preset set: luna, claude, or file path")
 @click.option("-o", "--output", default=None, help="Stage file path")
 def prepare_preset(name, duration, load_files, output):
     """Append preset pattern frames."""
-    presets, emotions = _load_all_presets(load_files or None)
+    presets, emotions, _hidden = _load_all_presets(load_files or None)
     all_presets = {**presets, **emotions}
     if name not in all_presets:
         print(f"Unknown preset: {name}")
@@ -1038,6 +1125,107 @@ def ensure_compiled():
         click.echo(f"Compilation failed: {result.stderr}")
         return False
     return True
+
+
+def _save_config(config):
+    """Save config to config.local.json."""
+    with open(CONFIG_FILE, "w") as f:
+        json.dump(config, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+
+
+@cli.command("default", context_settings=dict(
+    ignore_unknown_options=True, allow_extra_args=True,
+))
+@click.argument("args", nargs=-1)
+def set_default(args):
+    """Get or set the default standby command.
+
+    \b
+    Examples:
+        tivoo default                              # Show current default
+        tivoo default clock 1                      # Set default to clock style 1
+        tivoo default preset standby --load claude  # Set default to preset
+    """
+    config = _load_config()
+
+    if not args:
+        print(f"Current default: {config['default']}")
+        return
+
+    cmd_str = " ".join(args)
+    config["default"] = cmd_str
+    _save_config(config)
+    print(f"Default set to: {cmd_str}")
+
+
+def _run_default():
+    """Execute the default command from config."""
+    import shlex
+    config = _load_config()
+    cmd_str = config["default"]
+    parts = shlex.split(cmd_str)
+    if not parts:
+        return
+
+    subcmd = parts[0]
+    sub_args = parts[1:]
+
+    if subcmd == "clock":
+        # Invoke clock command
+        ctx = click.Context(clock)
+        ctx.invoke(clock, **_parse_clock_args(sub_args))
+    elif subcmd == "preset":
+        # Invoke preset command with loop=0 (infinite)
+        if not sub_args:
+            print("  Default preset: no name specified")
+            return
+        name = sub_args[0]
+        load_files = []
+        i = 1
+        while i < len(sub_args):
+            if sub_args[i] == "--load" and i + 1 < len(sub_args):
+                load_files.append(sub_args[i + 1])
+                i += 2
+            else:
+                i += 1
+        presets, emotions = _load_all_presets(load_files or None)
+        all_presets = {**presets, **emotions}
+        if name not in all_presets:
+            print(f"  Unknown preset: {name}")
+            return
+        desc, func = all_presets[name]
+        print(f"Default: {desc} (loop=infinite)")
+        frames, delays = func()
+        _send_animation(frames, delays[0], delays)
+    else:
+        print(f"  Unknown default command: {subcmd}")
+
+
+def _parse_clock_args(args):
+    """Parse clock sub-args into kwargs."""
+    kwargs = {"style": 0, "twelve_hour": False, "weather": False,
+              "temp": False, "calendar": False, "color": "white"}
+    i = 0
+    while i < len(args):
+        if args[i] == "--12h":
+            kwargs["twelve_hour"] = True
+        elif args[i] == "--weather":
+            kwargs["weather"] = True
+        elif args[i] == "--temp":
+            kwargs["temp"] = True
+        elif args[i] == "--calendar":
+            kwargs["calendar"] = True
+        elif args[i] == "--color" and i + 1 < len(args):
+            kwargs["color"] = args[i + 1]
+            i += 1
+        else:
+            try:
+                kwargs["style"] = int(args[i])
+            except ValueError:
+                pass
+        i += 1
+    return kwargs
 
 
 if __name__ == "__main__":

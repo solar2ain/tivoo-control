@@ -93,6 +93,13 @@ def _draw_eyes(p, style):
         p[7][9] = _EP; p[7][10] = _EV; p[7][11] = _EW
         p[8][9] = _EV; p[8][10] = _EV; p[8][11] = _EW
 
+    elif style == "half_open":
+        # Compressed open eye — lashes press down, 1 row of eye detail
+        p[7][4] = _EK; p[7][5] = _EK; p[7][6] = _EK
+        p[7][9] = _EK; p[7][10] = _EK; p[7][11] = _EK
+        p[8][4] = _EW; p[8][5] = _EV; p[8][6] = _EP
+        p[8][9] = _EP; p[8][10] = _EV; p[8][11] = _EW
+
     elif style == "squint":
         # Lashes
         p[6][4] = _EK; p[6][5] = _EK; p[6][6] = _EK
@@ -101,16 +108,27 @@ def _draw_eyes(p, style):
         p[7][4] = _EV; p[7][5] = _EV; p[7][6] = _EV
         p[7][9] = _EV; p[7][10] = _EV; p[7][11] = _EV
 
+    elif style == "happy":
+        #  ##        ##
+        # #  #      #  #
+        # Eyes shift outward by 1 from normal position
+        # Left eye (shifted left)
+        p[7][4] = _EK; p[7][5] = _EK
+        p[8][3] = _EK; p[8][6] = _EK
+        # Right eye (shifted right)
+        p[7][10] = _EK; p[7][11] = _EK
+        p[8][9] = _EK; p[8][12] = _EK
+
     elif style == "closed":
-        p[7][4] = _EK; p[7][5] = _EK; p[7][6] = _EK
-        p[7][9] = _EK; p[7][10] = _EK; p[7][11] = _EK
+        p[8][4] = _EK; p[8][5] = _EK; p[8][6] = _EK
+        p[8][9] = _EK; p[8][10] = _EK; p[8][11] = _EK
 
     elif style == "half":
-        # Half-closed (sleepy)
-        p[6][4] = _EK; p[6][5] = _EK; p[6][6] = _EK
-        p[6][9] = _EK; p[6][10] = _EK; p[6][11] = _EK
-        p[7][4] = _Sd; p[7][5] = _EV; p[7][6] = _EV
-        p[7][9] = _EV; p[7][10] = _EV; p[7][11] = _Sd
+        # Half-closed (sleepy) — 3px iris visible
+        p[7][4] = _EK; p[7][5] = _EK; p[7][6] = _EK
+        p[7][9] = _EK; p[7][10] = _EK; p[7][11] = _EK
+        p[8][4] = _EV; p[8][5] = _EV; p[8][6] = _EV
+        p[8][9] = _EV; p[8][10] = _EV; p[8][11] = _EV
 
     elif style == "wide":
         # Shocked wide eyes
@@ -138,7 +156,16 @@ def _draw_eyes(p, style):
         p[7][4] = _EW; p[7][5] = _EV; p[7][6] = _EP
         p[8][4] = _EW; p[8][5] = _EV; p[8][6] = _EV
         # Right closed (wink)
+        p[8][9] = _EK; p[8][10] = _EK; p[8][11] = _EK
+
+    elif style == "one_half_open":
+        # Left open, right half-open (wink transition)
+        p[6][4] = _EK; p[6][5] = _EK; p[6][6] = _EK
+        p[7][4] = _EW; p[7][5] = _EV; p[7][6] = _EP
+        p[8][4] = _EW; p[8][5] = _EV; p[8][6] = _EV
+        # Right half-open
         p[7][9] = _EK; p[7][10] = _EK; p[7][11] = _EK
+        p[8][9] = _EP; p[8][10] = _EV; p[8][11] = _EW
 
     elif style == "dizzy":
         p[7][4] = _EK; p[7][6] = _EK; p[8][5] = _EK
@@ -165,6 +192,17 @@ def _draw_eyes(p, style):
         p[7][9] = r; p[7][11] = r; p[8][10] = r; p[6][9] = r; p[6][11] = r
 
 
+def _draw_brows(p, style):
+    """Draw Luna's eyebrows."""
+    _EK = (30, 20, 40)
+    if style == "angry":
+        # V brows — outer high, inner low (pressed down)
+        p[5][3] = _EK; p[5][4] = _EK
+        p[6][5] = _EK; p[6][6] = _EK
+        p[5][12] = _EK; p[5][11] = _EK
+        p[6][10] = _EK; p[6][9] = _EK
+
+
 # --- Mouth ---
 
 def _draw_mouth(p, style):
@@ -175,6 +213,11 @@ def _draw_mouth(p, style):
     if style == "shy":
         p[11][7] = _LP; p[11][8] = _LP
 
+    elif style == "smile_up":
+        # Slight upturn: corners up one row, middle flat
+        p[10][6] = _LP; p[10][9] = _LP
+        p[11][7] = _LP; p[11][8] = _LP
+
     elif style == "smile":
         p[11][6] = _LP; p[11][7] = _LP; p[11][8] = _LP; p[11][9] = _LP
 
@@ -183,20 +226,18 @@ def _draw_mouth(p, style):
         p[12][7] = _LP; p[12][8] = _LP
 
     elif style == "sad":
-        p[12][6] = _LP; p[12][7] = _LP; p[12][8] = _LP; p[12][9] = _LP
-        p[11][5] = _LP; p[11][10] = _LP
+        p[11][6] = _LP; p[11][7] = _LP; p[11][8] = _LP; p[11][9] = _LP
 
     elif style == "open":
         p[11][7] = _EK; p[11][8] = _EK
-        p[12][7] = _EK; p[12][8] = _EK
 
     elif style == "flat":
         p[11][6] = _LP; p[11][7] = _LP; p[11][8] = _LP; p[11][9] = _LP
 
     elif style == "wavy":
-        p[11][5] = _LP; p[11][6] = _LP
-        p[12][7] = _LP; p[12][8] = _LP
-        p[11][9] = _LP; p[11][10] = _LP
+        # _--_ shape: middle level, sides droop
+        p[11][7] = _LP; p[11][8] = _LP
+        p[12][6] = _LP; p[12][9] = _LP
 
     elif style == "kiss":
         p[11][7] = _LP; p[11][8] = _LP
@@ -218,14 +259,21 @@ def _draw_nose(p):
 
 # --- Extras ---
 
-def _draw_tear(p, side="left"):
-    if side == "left":
-        p[9][3] = _BLUE; p[10][3] = _BLUE
-    elif side == "right":
-        p[9][12] = _BLUE; p[10][12] = _BLUE
-    elif side == "both":
-        p[9][3] = _BLUE; p[10][3] = _BLUE
-        p[9][12] = _BLUE; p[10][12] = _BLUE
+def _draw_tear(p, side="both", heavy=False):
+    lb = (80, 150, 255)
+    lw = (150, 200, 255)
+    if side in ("left", "both"):
+        p[8][4] = lb; p[9][4] = lb; p[10][4] = lb
+        if heavy:
+            p[11][4] = lb
+            p[9][3] = lw; p[10][3] = lw
+            p[9][5] = lw
+    if side in ("right", "both"):
+        p[8][11] = lb; p[9][11] = lb; p[10][11] = lb
+        if heavy:
+            p[11][11] = lb
+            p[9][12] = lw; p[10][12] = lw
+            p[9][10] = lw
 
 
 def _draw_sweat(p, side="left"):
@@ -247,12 +295,24 @@ def _draw_sparkles(p, density=1):
 
 def _draw_zzz(p):
     z = _WHITE
-    p[1][14] = z; p[1][15] = z; p[2][15] = z
-    p[3][14] = z; p[3][15] = z
+    p[1][11] = z; p[1][12] = z; p[1][13] = z
+    p[2][13] = z
+    p[3][12] = z
+    p[4][11] = z
+    p[5][11] = z; p[5][12] = z; p[5][13] = z
 
 
 def _draw_exclaim(p):
     p[2][15] = _RED; p[3][15] = _RED; p[4][15] = _RED; p[6][15] = _RED
+
+
+def _draw_dots(p, count=3):
+    """Draw thinking dots above head."""
+    d = _SP
+    positions = [(0, 5), (0, 7), (0, 9)]
+    for i in range(min(count, 3)):
+        y, x = positions[i]
+        p[y][x] = d
 
 
 def _draw_confetti(p, density=1):
@@ -297,8 +357,8 @@ def _draw_sunglasses(p, shine=False):
 # --- Helper to build a frame ---
 
 def _frame(eyes="open", mouth="shy", blush=True, nose=True, skin=None,
-           tear=None, sweat=None, sparkles=0, zzz=False, exclaim=False,
-           confetti=0, tint=None, sunglasses=False, sg_shine=False):
+           tear=None, heavy_tear=False, sweat=None, sparkles=0, zzz=False, exclaim=False,
+           confetti=0, tint=None, sunglasses=False, sg_shine=False, brows=None, dots=0):
     """Build one Luna frame from components."""
     f = _luna_base(skin)
     if tint == "red":
@@ -309,13 +369,15 @@ def _frame(eyes="open", mouth="shy", blush=True, nose=True, skin=None,
         _draw_sunglasses(f, sg_shine)
     else:
         _draw_eyes(f, eyes)
+    if brows:
+        _draw_brows(f, brows)
     if nose:
         _draw_nose(f)
     if blush:
         _draw_blush(f)
     _draw_mouth(f, mouth)
     if tear:
-        _draw_tear(f, tear)
+        _draw_tear(f, tear, heavy=heavy_tear)
     if sweat:
         _draw_sweat(f, sweat)
     if sparkles:
@@ -326,6 +388,8 @@ def _frame(eyes="open", mouth="shy", blush=True, nose=True, skin=None,
         _draw_exclaim(f)
     if confetti:
         _draw_confetti(f, confetti)
+    if dots:
+        _draw_dots(f, dots)
     return f
 
 
@@ -335,8 +399,8 @@ def happy():
     """Happy Luna."""
     return [
         _frame(eyes="open", mouth="shy"),
-        _frame(eyes="squint", mouth="smile"),
-        _frame(eyes="squint", mouth="grin"),
+        _frame(eyes="open", mouth="smile"),
+        _frame(eyes="half_open", mouth="grin"),
     ], [500, 500, 500]
 
 
@@ -345,16 +409,16 @@ def sad():
     return [
         _frame(eyes="open", mouth="sad"),
         _frame(eyes="closed", mouth="sad"),
-        _frame(eyes="closed", mouth="sad", tear="left"),
+        _frame(eyes="closed", mouth="sad", tear="both"),
     ], [600, 600, 600]
 
 
 def angry():
     """Angry Luna."""
     return [
-        _frame(eyes="open", mouth="flat"),
-        _frame(eyes="open", mouth="flat", tint="red"),
-        _frame(eyes="squint", mouth="flat", tint="red"),
+        _frame(eyes="open", mouth="flat", brows="angry"),
+        _frame(eyes="open", mouth="flat", brows="angry", tint="red"),
+        _frame(eyes="squint", mouth="flat", brows="angry", tint="red"),
     ], [500, 500, 500]
 
 
@@ -378,9 +442,9 @@ def cool():
 def cry():
     """Crying Luna."""
     return [
-        _frame(eyes="open", mouth="sad"),
-        _frame(eyes="closed", mouth="sad", tear="left"),
-        _frame(eyes="closed", mouth="sad", tear="right"),
+        _frame(eyes="closed", mouth="sad", tear="both"),
+        _frame(eyes="closed", mouth="sad", tear="both", heavy_tear=True),
+        _frame(eyes="open", mouth="sad", tear="both"),
     ], [500, 500, 500]
 
 
@@ -388,26 +452,26 @@ def laugh():
     """Laughing Luna."""
     return [
         _frame(eyes="open", mouth="grin"),
-        _frame(eyes="squint", mouth="grin"),
-        _frame(eyes="squint", mouth="grin", tear="left"),
+        _frame(eyes="closed", mouth="grin"),
+        _frame(eyes="happy", mouth="grin"),
     ], [400, 400, 400]
 
 
 def sleepy():
     """Sleepy Luna."""
     return [
-        _frame(eyes="half", mouth="flat"),
+        _frame(eyes="half_open", mouth="flat"),
         _frame(eyes="closed", mouth="flat"),
         _frame(eyes="closed", mouth="flat", zzz=True),
-    ], [700, 700, 700]
+    ], [700, 500, 700]
 
 
 def shock():
     """Shocked Luna."""
     return [
-        _frame(eyes="wide", mouth="open", blush=False),
-        _frame(eyes="wide", mouth="open", blush=False, exclaim=True),
-        _frame(eyes="wide", mouth="open", blush=False, exclaim=True, sparkles=1),
+        _frame(eyes="open", mouth="shy", blush=True),
+        _frame(eyes="wide", mouth="smile", blush=False, exclaim=True),
+        _frame(eyes="wide", mouth="smile", blush=False, exclaim=True, sparkles=1),
     ], [400, 400, 400]
 
 
@@ -415,26 +479,27 @@ def wink():
     """Winking Luna."""
     return [
         _frame(eyes="open", mouth="shy"),
-        _frame(eyes="one_closed", mouth="smile"),
-        _frame(eyes="open", mouth="shy"),
-    ], [500, 500, 500]
+        _frame(eyes="one_half_open", mouth="shy"),
+        _frame(eyes="one_closed", mouth="smile_up", sparkles=1),
+    ], [1000, 300, 500]
 
 
 def sick():
     """Sick Luna."""
     return [
-        _frame(eyes="dizzy", mouth="wavy", tint="green", blush=False),
-        _frame(eyes="dizzy", mouth="wavy", tint="green", blush=False, sweat="left"),
-        _frame(eyes="dizzy", mouth="wavy", tint="green", blush=False, sweat="both"),
-    ], [600, 600, 600]
+        _frame(eyes="half_open", mouth="flat", blush=False),
+        _frame(eyes="half_open", mouth="flat", blush=False, sweat="left"),
+        _frame(eyes="half_open", mouth="flat", blush=False, sweat="both"),
+        _frame(eyes="half_open", mouth="flat", blush=False, sweat="both", tint="green"),
+    ], [600, 600, 600, 600]
 
 
 def party():
     """Party Luna."""
     return [
         _frame(eyes="open", mouth="grin"),
-        _frame(eyes="squint", mouth="grin", confetti=1),
-        _frame(eyes="squint", mouth="grin", confetti=2),
+        _frame(eyes="half_open", mouth="grin", confetti=1),
+        _frame(eyes="open", mouth="grin", confetti=2),
     ], [400, 400, 400]
 
 
@@ -462,15 +527,41 @@ def kiss():
 
 def kiss_with_heart():
     """Flying kiss Luna with heart."""
-    f1 = _frame(eyes="one_closed", mouth="kiss")
-    f2 = _frame(eyes="one_closed", mouth="kiss")
+    f1 = _frame(eyes="open", mouth="shy")
+    f2 = _frame(eyes="one_half_open", mouth="kiss")
     _draw_flying_heart(f2, 12, 5)
     f3 = _frame(eyes="one_closed", mouth="kiss")
     _draw_flying_heart(f3, 13, 2)
     return [f1, f2, f3], [400, 400, 400]
 
 
-# --- Registry ---
+def standby():
+    """Standby Luna — blink and subtle mouth change."""
+    # Standing
+    f1 = _frame(eyes="open", mouth="shy")
+
+    # Blink
+    f2 = _frame(eyes="half_open", mouth="shy")
+    f3 = _frame(eyes="closed", mouth="shy")
+    f4 = _frame(eyes="open", mouth="shy")
+
+    # Smile briefly
+    f5 = _frame(eyes="open", mouth="smile")
+    f6 = _frame(eyes="open", mouth="shy")
+
+    return [f1, f2, f3, f4, f5, f6], [2000, 200, 200, 1500, 500, 300]
+
+
+def thinking():
+    """Thinking Luna — eyes look up, dots appear."""
+    return [
+        _frame(eyes="open", mouth="shy"),
+        _frame(eyes="lookup", mouth="shy"),
+        _frame(eyes="lookup", mouth="shy", dots=1),
+        _frame(eyes="lookup", mouth="shy", dots=2),
+        _frame(eyes="lookup", mouth="shy", dots=3),
+    ], [600, 400, 400, 400, 400]
+
 
 # --- Registry ---
 # EMOTIONS is used by --load to override default emotion presets
@@ -489,4 +580,6 @@ EMOTIONS = {
     "sick": ("Sick Luna", sick),
     "party": ("Party Luna", party),
     "kiss": ("Flying kiss Luna", kiss_with_heart),
+    "standby": ("Standby Luna", standby),
+    "thinking": ("Thinking Luna", thinking),
 }

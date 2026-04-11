@@ -11,8 +11,11 @@ __pycache__/
 # Logs
 tivoo.log
 
+# Local config (contains API keys)
+config.local.json
+
 # Generated hook scripts (machine-specific paths)
-hooks/generated/
+hooks/generated-claude/
 
 # macOS
 .DS_Store

@@ -68,13 +68,12 @@ def _draw_eyes(p, style):
                 p[5 + dy][10 + dx] = _BLACK
     elif style == "squint":
         # Horizontal line eyes (happy squint)
-        for dx in range(3):
-            p[6][4 + dx] = _BLACK
-            p[6][10 + dx] = _BLACK
+        p[6][4] = _BLACK; p[6][5] = _BLACK
+        p[6][10] = _BLACK; p[6][11] = _BLACK
     elif style == "closed":
-        # Curved closed eyes
+        # Closed eyes (3px, one wider than open on right)
         p[6][4] = _BLACK; p[6][5] = _BLACK; p[6][6] = _BLACK
-        p[6][10] = _BLACK; p[6][11] = _BLACK; p[6][9] = _BLACK
+        p[6][10] = _BLACK; p[6][11] = _BLACK; p[6][12] = _BLACK
     elif style == "half":
         # Half-closed (sleepy)
         p[6][4] = _BLACK; p[6][5] = _BLACK
@@ -100,38 +99,38 @@ def _draw_eyes(p, style):
                 p[4 + dy][4 + dx] = _BLACK
                 p[4 + dy][10 + dx] = _BLACK
     elif style == "hearts":
-        # Heart-shaped eyes (small)
+        # Small heart eyes (3x3) — symmetric
         h = _RED
+        # Left heart centered at col 5
         p[5][4] = h; p[5][6] = h
-        p[6][3] = h; p[6][4] = h; p[6][5] = h; p[6][6] = h; p[6][7] = h
-        p[7][4] = h; p[7][5] = h; p[7][6] = h
-        p[8][5] = h
-        p[5][10] = h; p[5][12] = h
-        p[6][9] = h; p[6][10] = h; p[6][11] = h; p[6][12] = h; p[6][13] = h
-        p[7][10] = h; p[7][11] = h; p[7][12] = h
-        p[8][11] = h
+        p[6][4] = h; p[6][5] = h; p[6][6] = h
+        p[7][5] = h
+        # Right heart centered at col 10
+        p[5][9] = h; p[5][11] = h
+        p[6][9] = h; p[6][10] = h; p[6][11] = h
+        p[7][10] = h
     elif style == "hearts_big":
-        # Bigger heart eyes
+        # Bigger heart eyes (4x4) — symmetric
         h = _RED
         w = _PINK
+        # Left heart centered at col 5
         p[4][4] = h; p[4][6] = h
         p[5][3] = h; p[5][4] = w; p[5][5] = h; p[5][6] = w; p[5][7] = h
-        p[6][3] = h; p[6][4] = h; p[6][5] = h; p[6][6] = h; p[6][7] = h
-        p[7][4] = h; p[7][5] = h; p[7][6] = h
-        p[8][5] = h
-        p[4][10] = h; p[4][12] = h
-        p[5][9] = h; p[5][10] = w; p[5][11] = h; p[5][12] = w; p[5][13] = h
-        p[6][9] = h; p[6][10] = h; p[6][11] = h; p[6][12] = h; p[6][13] = h
-        p[7][10] = h; p[7][11] = h; p[7][12] = h
-        p[8][11] = h
+        p[6][4] = h; p[6][5] = h; p[6][6] = h
+        p[7][5] = h
+        # Right heart centered at col 10
+        p[4][9] = h; p[4][11] = h
+        p[5][8] = h; p[5][9] = w; p[5][10] = h; p[5][11] = w; p[5][12] = h
+        p[6][9] = h; p[6][10] = h; p[6][11] = h
+        p[7][10] = h
     elif style == "dizzy":
-        # X-shaped eyes
+        # X-shaped eyes (symmetric about 7.5)
         p[5][4] = _BLACK; p[5][6] = _BLACK
         p[6][5] = _BLACK
         p[7][4] = _BLACK; p[7][6] = _BLACK
-        p[5][10] = _BLACK; p[5][12] = _BLACK
-        p[6][11] = _BLACK
-        p[7][10] = _BLACK; p[7][12] = _BLACK
+        p[5][9] = _BLACK; p[5][11] = _BLACK
+        p[6][10] = _BLACK
+        p[7][9] = _BLACK; p[7][11] = _BLACK
     elif style == "one_closed":
         # Left open, right wink
         for dy in (0, 1):
@@ -186,15 +185,14 @@ def _draw_mouth(p, style):
         p[11][8] = _RED; p[11][9] = _RED; p[11][10] = _BLACK
         p[12][6] = _BLACK; p[12][7] = _BLACK; p[12][8] = _BLACK; p[12][9] = _BLACK
     elif style == "sad":
-        # Sad frown
-        p[11][5] = _BLACK; p[11][6] = _BLACK; p[11][7] = _BLACK
-        p[11][8] = _BLACK; p[11][9] = _BLACK; p[11][10] = _BLACK
-        p[10][4] = _BLACK; p[10][11] = _BLACK
+        # Small frown
+        p[10][6] = _BLACK; p[10][7] = _BLACK; p[10][8] = _BLACK; p[10][9] = _BLACK
+        p[11][5] = _BLACK; p[11][10] = _BLACK
     elif style == "frown":
         # Angry frown
-        p[11][5] = _BLACK; p[11][6] = _BLACK; p[11][7] = _BLACK
-        p[11][8] = _BLACK; p[11][9] = _BLACK; p[11][10] = _BLACK
-        p[10][5] = _BLACK; p[10][10] = _BLACK
+        p[10][5] = _BLACK; p[10][6] = _BLACK; p[10][7] = _BLACK
+        p[10][8] = _BLACK; p[10][9] = _BLACK; p[10][10] = _BLACK
+        p[11][5] = _BLACK; p[11][10] = _BLACK
     elif style == "open":
         # Small open mouth (surprise)
         for dy in range(2):
@@ -223,6 +221,8 @@ def _draw_mouth(p, style):
     elif style == "determined":
         # Tight determined mouth
         p[10][6] = _BLACK; p[10][7] = _BLACK; p[10][8] = _BLACK; p[10][9] = _BLACK
+    elif style == "small":
+        p[10][7] = _BLACK; p[10][8] = _BLACK
 
 
 # --- Brows ---
@@ -240,6 +240,10 @@ def _draw_brows(p, style):
         # More intense angry brows (lower)
         p[4][3] = _BLACK; p[4][4] = _BLACK; p[4][5] = _BLACK; p[5][6] = _BLACK
         p[4][12] = _BLACK; p[4][11] = _BLACK; p[4][10] = _BLACK; p[5][9] = _BLACK
+    elif style == "flat":
+        # Flat horizontal brows — wide
+        p[4][3] = _BLACK; p[4][4] = _BLACK; p[4][5] = _BLACK; p[4][6] = _BLACK
+        p[4][9] = _BLACK; p[4][10] = _BLACK; p[4][11] = _BLACK; p[4][12] = _BLACK
     elif style == "worried":
         # Worried brows (opposite angle)
         p[4][4] = _BLACK; p[4][5] = _BLACK; p[3][6] = _BLACK
@@ -248,15 +252,22 @@ def _draw_brows(p, style):
 
 # --- Extras / Effects ---
 
-def _draw_tear(p, side="left"):
-    """Draw a teardrop."""
-    if side == "left":
-        p[7][3] = _BLUE; p[8][3] = _BLUE; p[9][3] = _BLUE
-    elif side == "right":
-        p[7][12] = _BLUE; p[8][12] = _BLUE; p[9][12] = _BLUE
-    elif side == "both":
-        p[7][3] = _BLUE; p[8][3] = _BLUE; p[9][3] = _BLUE
-        p[7][12] = _BLUE; p[8][12] = _BLUE; p[9][12] = _BLUE
+def _draw_tear(p, side="both", heavy=False):
+    """Draw teardrops below eyes."""
+    lb = _BLUE
+    lw = (150, 200, 255)
+    if side in ("left", "both"):
+        p[7][4] = lb; p[8][4] = lb; p[9][4] = lb
+        if heavy:
+            p[10][4] = lb
+            p[8][3] = lw; p[9][3] = lw
+            p[8][5] = lw
+    if side in ("right", "both"):
+        p[7][11] = lb; p[8][11] = lb; p[9][11] = lb
+        if heavy:
+            p[10][11] = lb
+            p[8][12] = lw; p[9][12] = lw
+            p[8][10] = lw
 
 
 def _draw_sweat(p, side="left"):
@@ -269,14 +280,13 @@ def _draw_sweat(p, side="left"):
 
 
 def _draw_zzz(p):
-    """Draw ZzZ for sleepy."""
+    """Draw Z for sleepy."""
     z = _WHITE
-    # Z at top right
     p[1][11] = z; p[1][12] = z; p[1][13] = z
-    p[2][12] = z
-    p[3][11] = z; p[3][12] = z; p[3][13] = z
-    # Smaller z
-    p[4][13] = z; p[4][14] = z
+    p[2][13] = z
+    p[3][12] = z
+    p[4][11] = z
+    p[5][11] = z; p[5][12] = z; p[5][13] = z
     p[5][14] = z
 
 
@@ -309,6 +319,15 @@ def _draw_exclaim(p):
     e = _RED
     p[1][14] = e; p[2][14] = e; p[3][14] = e; p[4][14] = e
     p[6][14] = e
+
+
+def _draw_dots(p, count=3):
+    """Draw thinking dots above head."""
+    d = _WHITE
+    positions = [(1, 5), (1, 7), (1, 9)]
+    for i in range(min(count, 3)):
+        y, x = positions[i]
+        p[y][x] = d
 
 
 def _draw_confetti(p, density=1):
@@ -360,18 +379,15 @@ def sad():
     f1 = _face_base()
     _draw_eyes(f1, "open")
     _draw_mouth(f1, "sad")
-    _draw_brows(f1, "worried")
 
     f2 = _face_base()
     _draw_eyes(f2, "closed")
     _draw_mouth(f2, "sad")
-    _draw_brows(f2, "worried")
 
     f3 = _face_base()
     _draw_eyes(f3, "closed")
     _draw_mouth(f3, "sad")
-    _draw_brows(f3, "worried")
-    _draw_tear(f3, "left")
+    _draw_tear(f3)
 
     return [f1, f2, f3], [600, 600, 600]
 
@@ -380,8 +396,8 @@ def angry():
     """Angry face animation."""
     f1 = _face_base()
     _draw_eyes(f1, "open")
-    _draw_mouth(f1, "frown")
-    _draw_brows(f1, "angry")
+    _draw_mouth(f1, "flat")
+    _draw_brows(f1, "flat")
 
     f2 = _face_base()
     _draw_eyes(f2, "open")
@@ -430,18 +446,19 @@ def cool():
 def cry():
     """Crying face animation."""
     f1 = _face_base()
-    _draw_eyes(f1, "open")
+    _draw_eyes(f1, "closed")
     _draw_mouth(f1, "sad")
+    _draw_tear(f1, "both")
 
     f2 = _face_base()
     _draw_eyes(f2, "closed")
     _draw_mouth(f2, "sad")
-    _draw_tear(f2, "left")
+    _draw_tear(f2, "both", heavy=True)
 
     f3 = _face_base()
-    _draw_eyes(f3, "closed")
+    _draw_eyes(f3, "open")
     _draw_mouth(f3, "sad")
-    _draw_tear(f3, "right")
+    _draw_tear(f3, "both")
 
     return [f1, f2, f3], [500, 500, 500]
 
@@ -459,7 +476,6 @@ def laugh():
     f3 = _face_base()
     _draw_eyes(f3, "squint")
     _draw_mouth(f3, "laugh")
-    _draw_tear(f3, "left")
 
     return [f1, f2, f3], [400, 400, 400]
 
@@ -519,11 +535,13 @@ def wink():
 
 def sick():
     """Sick face animation."""
-    f1 = _face_base_sick()
+    _MID_SICK = (198, 210, 65)
+
+    f1 = _face_base()
     _draw_eyes(f1, "dizzy")
     _draw_mouth(f1, "wavy")
 
-    f2 = _face_base_sick()
+    f2 = _face_base(_MID_SICK)
     _draw_eyes(f2, "dizzy")
     _draw_mouth(f2, "wavy")
     _draw_sweat(f2, "left")
@@ -573,7 +591,7 @@ def kiss():
     """Flying kiss animation."""
     f1 = _face_base()
     _draw_eyes(f1, "one_closed")
-    _draw_mouth(f1, "kiss")
+    _draw_mouth(f1, "small")
 
     f2 = _face_base()
     _draw_eyes(f2, "one_closed")
@@ -586,6 +604,66 @@ def kiss():
     _draw_flying_heart(f3, 13, 1)
 
     return [f1, f2, f3], [400, 400, 400]
+
+
+def standby():
+    """Standby blink animation with subtle expression change."""
+    # Standing smile
+    f1 = _face_base()
+    _draw_eyes(f1, "open")
+    _draw_mouth(f1, "smile")
+
+    # Blink
+    f2 = _face_base()
+    _draw_eyes(f2, "half")
+    _draw_mouth(f2, "smile")
+
+    f3 = _face_base()
+    _draw_eyes(f3, "closed")
+    _draw_mouth(f3, "smile")
+
+    f4 = _face_base()
+    _draw_eyes(f4, "open")
+    _draw_mouth(f4, "smile")
+
+    # Look up briefly
+    f5 = _face_base()
+    _draw_eyes(f5, "lookup")
+    _draw_mouth(f5, "smile")
+
+    f6 = _face_base()
+    _draw_eyes(f6, "open")
+    _draw_mouth(f6, "smile")
+
+    return [f1, f2, f3, f4, f5, f6], [2000, 200, 200, 1500, 500, 300]
+
+
+def thinking():
+    """Thinking face — eyes look up, dots appear."""
+    f1 = _face_base()
+    _draw_eyes(f1, "open")
+    _draw_mouth(f1, "small")
+
+    f2 = _face_base()
+    _draw_eyes(f2, "lookup")
+    _draw_mouth(f2, "small")
+
+    f3 = _face_base()
+    _draw_eyes(f3, "lookup")
+    _draw_mouth(f3, "small")
+    _draw_dots(f3, 1)
+
+    f4 = _face_base()
+    _draw_eyes(f4, "lookup")
+    _draw_mouth(f4, "small")
+    _draw_dots(f4, 2)
+
+    f5 = _face_base()
+    _draw_eyes(f5, "lookup")
+    _draw_mouth(f5, "small")
+    _draw_dots(f5, 3)
+
+    return [f1, f2, f3, f4, f5], [600, 400, 400, 400, 400]
 
 
 # --- Registry ---
@@ -604,4 +682,6 @@ EMOTION_PRESETS = {
     "sick": ("Sick face", sick),
     "party": ("Party face", party),
     "kiss": ("Flying kiss", kiss),
+    "standby": ("Standby face", standby),
+    "thinking": ("Thinking face", thinking),
 }

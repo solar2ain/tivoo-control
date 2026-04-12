@@ -179,8 +179,8 @@ for entry in "${HOOK_MAP[@]}"; do
     TTS_TEXT="$TTS_EN"
   fi
 
-  PRESET_CMD="python3 $TIVOO_PY preset $PRESET --loop $LOOP$LOAD_FLAG"
-  STANDBY_CMD="python3 $TIVOO_PY preset standby --loop 0$LOAD_FLAG"
+  RESTORE_CMD="preset standby --loop 20$LOAD_FLAG"
+  PRESET_CMD="python3 $TIVOO_PY preset $PRESET --loop $LOOP$LOAD_FLAG --restore '$RESTORE_CMD'"
 
   # Check if TTS is applicable
   WANT_TTS=false
@@ -223,7 +223,7 @@ HOOKEOF
   if [[ "$EVENT" == "Notification" ]]; then
     # Notification: read message from JSON input and speak it
     cat >> "$HOOK_SCRIPT" << HOOKEOF
-($PRESET_CMD && $STANDBY_CMD) </dev/null >/dev/null 2>&1 &
+$PRESET_CMD </dev/null >/dev/null 2>&1 &
 HOOKEOF
     if $WANT_TTS; then
       cat >> "$HOOK_SCRIPT" << 'HOOKEOF'
@@ -244,9 +244,9 @@ HOOKEOF
     fi
 
   else
-    # Standard: preset → standby, fully detached
+    # Standard: preset with restore, fully detached
     cat >> "$HOOK_SCRIPT" << HOOKEOF
-($PRESET_CMD && $STANDBY_CMD) </dev/null >/dev/null 2>&1 &
+$PRESET_CMD </dev/null >/dev/null 2>&1 &
 HOOKEOF
     if $WANT_TTS; then
       cat >> "$HOOK_SCRIPT" << HOOKEOF

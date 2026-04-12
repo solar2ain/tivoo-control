@@ -669,8 +669,8 @@ def _resolve_load_path(name):
 
 
 def _load_from_files(paths):
-    """Load presets from external .py files. Returns (presets, emotions)."""
-    presets, emotions = {}, {}
+    """Load presets from external .py files. Returns (presets, emotions, hidden)."""
+    presets, emotions, hidden = {}, {}, set()
     for p in paths:
         resolved = _resolve_load_path(p)
         if resolved is None:
@@ -680,7 +680,7 @@ def _load_from_files(paths):
         spec.loader.exec_module(mod)
         presets.update(getattr(mod, "PRESETS", {}))
         emotions.update(getattr(mod, "EMOTIONS", {}))
-        hidden = getattr(mod, "HIDDEN_EMOTIONS", set())
+        hidden.update(getattr(mod, "HIDDEN_EMOTIONS", set()))
     return presets, emotions, hidden
 
 

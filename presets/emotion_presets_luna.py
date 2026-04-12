@@ -114,10 +114,10 @@ def _draw_eyes(p, style):
         # Eyes shift outward by 1 from normal position
         # Left eye (shifted left)
         p[7][4] = _EK; p[7][5] = _EK
-        p[8][3] = _EK; p[8][6] = _EK
+        p[8][3] = _EK; p[8][4] = (200, 170, 240); p[8][5] = _EV; p[8][6] = _EK
         # Right eye (shifted right)
         p[7][10] = _EK; p[7][11] = _EK
-        p[8][9] = _EK; p[8][12] = _EK
+        p[8][9] = _EK; p[8][10] = _EV; p[8][11] = (200, 170, 240); p[8][12] = _EK
 
     elif style == "closed":
         p[8][4] = _EK; p[8][5] = _EK; p[8][6] = _EK
@@ -172,11 +172,16 @@ def _draw_eyes(p, style):
         p[7][9] = _EK; p[7][11] = _EK; p[8][10] = _EK
 
     elif style == "lookup":
-        # Looking up (thinking)
-        p[6][4] = _EK; p[6][5] = _EK; p[6][6] = _EK
-        p[6][9] = _EK; p[6][10] = _EK; p[6][11] = _EK
-        p[7][5] = _EV; p[7][6] = _EV
-        p[7][10] = _EV; p[7][11] = _EV
+        # Looking up (thinking) — open eyes shifted up by 1 row
+        # Lashes
+        p[5][4] = _EK; p[5][5] = _EK; p[5][6] = _EK
+        p[5][9] = _EK; p[5][10] = _EK; p[5][11] = _EK
+        # Left eye
+        p[6][4] = _EW; p[6][5] = _EV; p[6][6] = _EP
+        p[7][4] = _EW; p[7][5] = _EV; p[7][6] = _EV
+        # Right eye
+        p[6][9] = _EP; p[6][10] = _EV; p[6][11] = _EW
+        p[7][9] = _EV; p[7][10] = _EV; p[7][11] = _EW
 
     elif style == "focused":
         # Determined narrow eyes
@@ -246,11 +251,16 @@ def _draw_mouth(p, style):
     elif style == "determined":
         p[11][6] = _LP; p[11][7] = _LP; p[11][8] = _LP; p[11][9] = _LP
 
+    elif style == "thinking":
+        # Small square mouth, shifted up
+        p[10][7] = _LP; p[10][8] = _LP
+        p[11][7] = _LP; p[11][8] = _LP
+
 
 # --- Face Details ---
 
 def _draw_blush(p):
-    p[9][4] = _PK; p[9][5] = _PK; p[9][11] = _PK; p[9][12] = _PK
+    p[9][4] = _PK; p[9][5] = _PK; p[9][10] = _PK; p[9][11] = _PK
 
 
 def _draw_nose(p):
@@ -308,8 +318,8 @@ def _draw_exclaim(p):
 
 def _draw_dots(p, count=3):
     """Draw thinking dots above head."""
-    d = _SP
-    positions = [(0, 5), (0, 7), (0, 9)]
+    d = _WHITE
+    positions = [(0, 6), (0, 8), (0, 10)]
     for i in range(min(count, 3)):
         y, x = positions[i]
         p[y][x] = d
@@ -373,7 +383,7 @@ def _frame(eyes="open", mouth="shy", blush=True, nose=True, skin=None,
         _draw_brows(f, brows)
     if nose:
         _draw_nose(f)
-    if blush:
+    if blush and eyes != "wide":
         _draw_blush(f)
     _draw_mouth(f, mouth)
     if tear:
@@ -536,18 +546,29 @@ def kiss_with_heart():
 
 
 def standby():
-    """Standby Luna — blink and subtle mouth change."""
-    # Standing
+    """Standby Luna — blink, subtle mouth change, tiara breathing."""
+    # Standing - tiara normal
     f1 = _frame(eyes="open", mouth="shy")
+    f1[1][7] = _TJ; f1[1][8] = _TJ
 
-    # Blink
+    # Blink - tiara dim
     f2 = _frame(eyes="half_open", mouth="shy")
-    f3 = _frame(eyes="closed", mouth="shy")
-    f4 = _frame(eyes="open", mouth="shy")
+    f2[1][7] = _MG; f2[1][8] = _MG
 
-    # Smile briefly
+    f3 = _frame(eyes="closed", mouth="shy")
+    f3[1][7] = _MG; f3[1][8] = _MG
+
+    # Eyes open - tiara bright
+    f4 = _frame(eyes="open", mouth="shy")
+    f4[1][7] = _SP; f4[1][8] = _SP
+
+    # Smile - tiara normal
     f5 = _frame(eyes="open", mouth="smile")
+    f5[1][7] = _TJ; f5[1][8] = _TJ
+
+    # Back to shy - tiara dim
     f6 = _frame(eyes="open", mouth="shy")
+    f6[1][7] = _MG; f6[1][8] = _MG
 
     return [f1, f2, f3, f4, f5, f6], [2000, 200, 200, 1500, 500, 300]
 
@@ -556,10 +577,10 @@ def thinking():
     """Thinking Luna — eyes look up, dots appear."""
     return [
         _frame(eyes="open", mouth="shy"),
-        _frame(eyes="lookup", mouth="shy"),
-        _frame(eyes="lookup", mouth="shy", dots=1),
-        _frame(eyes="lookup", mouth="shy", dots=2),
-        _frame(eyes="lookup", mouth="shy", dots=3),
+        _frame(eyes="lookup", mouth="thinking"),
+        _frame(eyes="lookup", mouth="thinking", dots=1),
+        _frame(eyes="lookup", mouth="thinking", dots=2),
+        _frame(eyes="lookup", mouth="thinking", dots=3),
     ], [600, 400, 400, 400, 400]
 
 
@@ -608,6 +629,61 @@ def _mini_luna(p, cx, cy):
     px(iy, ix - 1, _EV); px(iy, ix + 1, _EV)
 
 
+def _draw_cat(p, cx, cy, color="white"):
+    """Draw a cute mini cat inspired by preset cat.
+    color: 'white' or 'orange'"""
+    ix, iy = int(cx), int(cy)
+    # Colors based on preset cat
+    if color == "white":
+        fur = _SK
+        fur_dark = _Sd
+        fur_light = (255, 240, 230)
+    else:  # orange
+        fur = (255, 165, 50)
+        fur_dark = (200, 120, 30)
+        fur_light = (255, 180, 70)
+    def px(r, c, col):
+        if 0 <= r < 16 and 0 <= c < 16:
+            p[r][c] = col
+
+    # Ears (pointy like preset cat)
+    px(iy - 3, ix - 1, fur)
+    px(iy - 2, ix - 2, fur); px(iy - 2, ix - 1, fur)
+
+    px(iy - 3, ix + 1, fur)
+    px(iy - 2, ix + 1, fur); px(iy - 2, ix + 2, fur)
+
+    # Head top
+    px(iy - 1, ix - 3, fur_dark); px(iy - 1, ix - 2, fur)
+    px(iy - 1, ix - 1, fur); px(iy - 1, ix, fur)
+    px(iy - 1, ix + 1, fur); px(iy - 1, ix + 2, fur); px(iy - 1, ix + 3, fur_dark)
+
+    # Face with eyes (green eyes like preset)
+    px(iy, ix - 3, fur_dark); px(iy, ix - 2, fur)
+    px(iy, ix - 1, fur); px(iy, ix, fur)
+    px(iy, ix + 1, fur); px(iy, ix + 2, fur); px(iy, ix + 3, fur_dark)
+
+    # Eyes: black (single dot)
+    px(iy, ix - 1, (40, 40, 40))
+    px(iy, ix + 1, (40, 40, 40))
+
+    # Face middle with nose
+    px(iy + 1, ix - 3, fur_dark); px(iy + 1, ix - 2, fur)
+    px(iy + 1, ix - 1, fur); px(iy + 1, ix, fur_dark)  # nose
+    px(iy + 1, ix + 1, fur); px(iy + 1, ix + 2, fur); px(iy + 1, ix + 3, fur_dark)
+
+    # Pink cheeks like preset
+    px(iy + 1, ix - 1, (255, 140, 160))
+    px(iy + 1, ix + 1, (255, 140, 160))
+
+    # Face bottom
+    px(iy + 2, ix - 2, fur_dark); px(iy + 2, ix - 1, fur)
+    px(iy + 2, ix, fur); px(iy + 2, ix + 1, fur); px(iy + 2, ix + 2, fur_dark)
+
+    # Chin
+    px(iy + 3, ix - 1, fur_dark); px(iy + 3, ix, fur); px(iy + 3, ix + 1, fur_dark)
+
+
 def _draw_magic_star(p, phase=0):
     """Draw rotating magic star at top-right corner."""
     colors = [_SP, _MG, _ST, _TJ]
@@ -620,14 +696,32 @@ def _draw_magic_star(p, phase=0):
         p[0][13] = c2; p[0][15] = c2; p[2][13] = c2; p[2][15] = c2
 
 
+def _draw_magic_star_at(p, cx, cy, phase=0):
+    """Draw rotating magic star at position (cx, cy)."""
+    colors = [_SP, _MG, _ST, _TJ]
+    c = colors[phase % 4]
+    c2 = colors[(phase + 1) % 4]
+
+    def px(y, x, color):
+        if 0 <= y < 16 and 0 <= x < 16:
+            p[y][x] = color
+
+    px(cy, cx, c)
+    if phase % 2 == 0:
+        px(cy - 1, cx, c2); px(cy + 1, cx, c2); px(cy, cx - 1, c2); px(cy, cx + 1, c2)
+    else:
+        px(cy - 1, cx - 1, c2); px(cy - 1, cx + 1, c2); px(cy + 1, cx - 1, c2); px(cy + 1, cx + 1, c2)
+
+
 def _draw_checkbox_luna(p, y, x, checked=False):
     """3x3 checkbox with sparkle outline."""
     w = _SP
+    green = (50, 205, 50)
     p[y][x] = w; p[y][x+1] = w; p[y][x+2] = w
     p[y+1][x] = w; p[y+1][x+1] = _BG; p[y+1][x+2] = w
     p[y+2][x] = w; p[y+2][x+1] = w; p[y+2][x+2] = w
     if checked:
-        p[y+1][x+1] = _MG
+        p[y+1][x+1] = green
 
 
 def _draw_question_mark_luna(p, y, x):
@@ -644,92 +738,158 @@ def _draw_question_mark_luna(p, y, x):
 
 
 def working():
-    """Working Luna — focused, mumbling, sparkle hints."""
-    f1 = _frame(eyes="focused", mouth="determined")
+    """Working Luna — focused with wide eyes, breathing tiara, progressive sparkles."""
+    # Frame 1: no sparkles
+    f1 = _frame(eyes="open", mouth="shy", sparkles=0)
+    f1[1][7] = _TJ; f1[1][8] = _TJ
 
-    f2 = _frame(eyes="focused", mouth="open")
-    f2[0][1] = _SP
+    # Frame 2: few sparkles, tiara dim
+    f2 = _frame(eyes="wide", mouth="shy", sparkles=1)
+    f2[0][0] = _SP
+    f2[1][7] = _MG; f2[1][8] = _MG
 
-    f3 = _frame(eyes="squint", mouth="flat")
-    f3[0][14] = _MG
+    # Frame 3: lots of sparkles, tiara bright
+    f3 = _frame(eyes="wide", mouth="shy", sparkles=2)
+    f3[0][0] = _SP; f3[0][15] = _MG
+    f3[15][0] = _ST; f3[15][15] = _SP
+    f3[7][0] = _MG; f3[7][15] = _ST
+    f3[1][7] = _SP; f3[1][8] = _SP
 
-    f4 = _frame(eyes="focused", mouth="open")
-    f4[0][1] = _MG; f4[0][14] = _SP
+    # Frame 4: few sparkles, tiara dim
+    f4 = _frame(eyes="wide", mouth="shy", sparkles=1)
+    f4[0][15] = _SP
+    f4[1][7] = _MG; f4[1][8] = _MG
 
-    return [f1, f2, f3, f4], [350, 350, 350, 350]
+    return [f1, f2, f3, f4], [500, 600, 600, 600]
 
 
 def subagent():
-    """Subagent — Luna dims and splits into mini clones."""
+    """Subagent — Luna dims and splits into white and orange cat helpers."""
     f1 = _frame(eyes="open", mouth="smile")
 
-    f2 = _shift_frame(_dim_frame(_frame(eyes="open", mouth="shy"), 0.7), xo=-3)
-    _mini_luna(f2, 12, 5)
-    _mini_luna(f2, 12, 11)
+    f2 = _shift_frame(_dim_frame(_frame(eyes="open", mouth="shy"), 0.8), xo=-1)
+    _draw_cat(f2, 12, 5, color="white")
 
-    f3 = _shift_frame(_dim_frame(_frame(eyes="open", mouth="shy"), 0.4), xo=-5)
-    _mini_luna(f3, 11, 3)
-    _mini_luna(f3, 11, 12)
+    f3 = _shift_frame(_dim_frame(_frame(eyes="open", mouth="shy"), 0.6), xo=-3)
+    _draw_cat(f3, 11, 4, color="white")
+    _draw_cat(f3, 12, 11, color="orange")
 
-    return [f1, f2, f3], [600, 400, 400]
+    f4 = _shift_frame(_dim_frame(_frame(eyes="open", mouth="shy"), 0.4), xo=-5)
+    _draw_cat(f4, 10, 3, color="white")
+    _draw_cat(f4, 11, 12, color="orange")
+
+    f5 = _shift_frame(_dim_frame(_frame(eyes="open", mouth="shy"), 0.3), xo=-7)
+    _draw_cat(f5, 9, 2, color="white")
+    _draw_cat(f5, 10, 13, color="orange")
+
+    return [f1, f2, f3, f4, f5], [500, 300, 300, 300, 300]
 
 
 def done():
-    """Done — excited Luna with sparkle burst."""
+    """Done — excited Luna with sparkle burst and green checkmark."""
     f1 = _frame(eyes="open", mouth="smile")
     f2 = _frame(eyes="happy", mouth="grin")
     f3 = _frame(eyes="happy", mouth="grin", sparkles=1)
     f4 = _frame(eyes="happy", mouth="grin", sparkles=2, confetti=2)
-    return [f1, f2, f3, f4], [400, 300, 400, 500]
+
+    # Green checkmark animation (same style as default emotion)
+    G = (50, 205, 50)
+    # Frame 5: checkmark at (y=2, x=10) - 6x4 small check
+    f5 = _frame(eyes="happy", mouth="grin", sparkles=2, confetti=2)
+    f5[2][15] = G
+    f5[3][14] = G
+    f5[4][10] = G; f5[4][13] = G
+    f5[5][11] = G; f5[5][12] = G
+
+    # Frame 6: same checkmark, stays
+    f6 = _frame(eyes="happy", mouth="grin", sparkles=2, confetti=2)
+    f6[2][15] = G
+    f6[3][14] = G
+    f6[4][10] = G; f6[4][13] = G
+    f6[5][11] = G; f6[5][12] = G
+
+    return [f1, f2, f3, f4, f5, f6], [400, 300, 400, 400, 300, 600]
 
 
 def notify():
-    """Notify — magic star flashes at top-right."""
+    """Notify — gold bell sways at top-right."""
     f1 = _frame(eyes="open", mouth="shy")
 
     f2 = _frame(eyes="open", mouth="shy")
-    f2[0][14] = _MG
+    _draw_bell_luna(f2, 11, tilt=0)
 
     f3 = _frame(eyes="lookup", mouth="smile")
-    f3[0][14] = _SP; f3[0][13] = _MG; f3[0][15] = _MG
-    f3[1][14] = _ST
+    _draw_bell_luna(f3, 11, tilt=-1)
 
     f4 = _frame(eyes="open", mouth="smile")
-    f4[0][14] = _WHITE; f4[0][13] = _SP; f4[0][15] = _SP
-    f4[1][14] = _SP; f4[1][13] = _MG; f4[1][15] = _MG
+    _draw_bell_luna(f4, 11, tilt=1)
 
     return [f1, f2, f3, f4], [400, 300, 400, 400]
 
 
+def _draw_bell_luna(p, cx, tilt=0):
+    """Draw gold bell — narrow rounded shape."""
+    g = (255, 210, 60)  # gold
+    d = (200, 165, 40)  # dark gold edge
+    w = _WHITE
+    x = cx + tilt
+
+    def px(r, c, color):
+        if 0 <= r < 16 and 0 <= c < 16:
+            p[r][c] = color
+
+    px(0, x, w)
+    px(1, x - 1, d); px(1, x, g); px(1, x + 1, d)
+    for row in (2, 3, 4, 5):
+        for dx in range(-2, 3):
+            px(row, x + dx, d if abs(dx) == 2 else g)
+    for dx in range(-3, 4):
+        px(6, x + dx, d if abs(dx) == 3 else g)
+    px(7, x + tilt, w)
+
+
 def tooluse():
-    """Tooluse — magic star rotates beside Luna."""
+    """Tooluse — multiple magic stars rotate around Luna, tiara breathing."""
     f1 = _frame(eyes="open", mouth="shy")
     _draw_magic_star(f1, phase=0)
+    _draw_magic_star_at(f1, 1, 1, phase=0)
+    f1[1][7] = _TJ; f1[1][8] = _TJ
 
     f2 = _frame(eyes="open", mouth="shy")
     _draw_magic_star(f2, phase=1)
+    _draw_magic_star_at(f2, 1, 1, phase=1)
+    _draw_magic_star_at(f2, 14, 6, phase=0)
+    f2[1][7] = _MG; f2[1][8] = _MG
 
     f3 = _frame(eyes="squint", mouth="shy")
     _draw_magic_star(f3, phase=2)
+    _draw_magic_star_at(f3, 1, 1, phase=2)
+    _draw_magic_star_at(f3, 14, 6, phase=1)
+    _draw_magic_star_at(f3, 7, 14, phase=0)
+    f3[1][7] = _SP; f3[1][8] = _SP
 
     f4 = _frame(eyes="open", mouth="shy")
     _draw_magic_star(f4, phase=3)
+    _draw_magic_star_at(f4, 1, 1, phase=3)
+    _draw_magic_star_at(f4, 14, 6, phase=2)
+    _draw_magic_star_at(f4, 7, 14, phase=1)
+    f4[1][7] = _MG; f4[1][8] = _MG
 
     return [f1, f2, f3, f4], [300, 300, 300, 300]
 
 
 def oops():
-    """Oops — dizzy eyes, exclaim, face shakes."""
+    """Oops — wide eyes, exclaim, face shakes."""
     f1 = _frame(eyes="open", mouth="shy")
-    f2 = _frame(eyes="dizzy", mouth="open", exclaim=True)
+    f2 = _frame(eyes="wide", mouth="open", exclaim=True)
 
-    f3 = _shift_frame(_frame(eyes="dizzy", mouth="open", tint="red"), xo=-1)
+    f3 = _shift_frame(_frame(eyes="wide", mouth="open"), xo=-1)
     f3[2][15] = _RED; f3[3][15] = _RED; f3[4][15] = _RED; f3[6][15] = _RED
 
-    f4 = _shift_frame(_frame(eyes="dizzy", mouth="open", tint="red"), xo=1)
+    f4 = _shift_frame(_frame(eyes="wide", mouth="open"), xo=1)
     f4[2][15] = _RED; f4[3][15] = _RED; f4[4][15] = _RED; f4[6][15] = _RED
 
-    f5 = _frame(eyes="dizzy", mouth="open", exclaim=True)
+    f5 = _frame(eyes="wide", mouth="open", exclaim=True)
     return [f1, f2, f3, f4, f5], [500, 400, 200, 200, 400]
 
 
@@ -799,26 +959,95 @@ def question():
 
 
 def magic():
-    """Magic — full magical girl spell cast!"""
+    """Magic — rotating stars multiply, screen fades to white."""
     w = (200, 170, 130)  # wand shaft
 
-    f1 = _frame(eyes="closed", mouth="determined")
+    f1 = _frame(eyes="open", mouth="determined")
 
+    # Frame 2: 1 star at wand tip
     f2 = _frame(eyes="wide", mouth="shy")
-    f2[3][15] = w; f2[4][15] = w; f2[5][15] = w
-    f2[2][15] = _SP
+    f2[3][14] = w; f2[4][14] = w; f2[5][14] = w; f2[6][14] = w; f2[7][14] = w
+    _draw_magic_star_at(f2, 14, 2, phase=0)
 
-    f3 = _frame(eyes="one_closed", mouth="smile")
-    f3[3][15] = w; f3[4][15] = w; f3[5][15] = w
-    f3[2][15] = _WHITE; f3[1][15] = _MG; f3[1][14] = _SP
+    # Frame 3: 1 star, brighter
+    f3 = _frame(eyes="wide", mouth="shy")
+    f3[3][14] = w; f3[4][14] = w; f3[5][14] = w; f3[6][14] = w; f3[7][14] = w
+    _draw_magic_star_at(f3, 14, 2, phase=1)
 
-    f4 = _frame(eyes="happy", mouth="grin", sparkles=2)
-    f4[0][14] = _MG; f4[0][15] = _SP; f4[1][13] = _ST
-    f4[2][14] = _WHITE; f4[2][15] = _MG
+    # Frame 4: 2 stars (add top-left corner)
+    f4 = _frame(eyes="one_half_open", mouth="smile")
+    f4[3][14] = w; f4[4][14] = w; f4[5][14] = w; f4[6][14] = w; f4[7][14] = w
+    _draw_magic_star_at(f4, 14, 2, phase=2)
+    _draw_magic_star_at(f4, 1, 1, phase=0)
 
-    f5 = _frame(eyes="hearts", mouth="grin", sparkles=2, confetti=2)
+    # Frame 5: 3 stars (add top-right corner)
+    f5 = _frame(eyes="one_closed", mouth="smile")
+    f5[3][14] = w; f5[4][14] = w; f5[5][14] = w; f5[6][14] = w; f5[7][14] = w
+    _draw_magic_star_at(f5, 14, 2, phase=3)
+    _draw_magic_star_at(f5, 1, 1, phase=1)
+    _draw_magic_star_at(f5, 1, 14, phase=2)
 
-    return [f1, f2, f3, f4, f5], [400, 400, 350, 350, 600]
+    # Frame 6: 4 stars (add bottom-center under face)
+    f6 = _frame(eyes="happy", mouth="grin")
+    f6[3][14] = w; f6[4][14] = w; f6[5][14] = w; f6[6][14] = w; f6[7][14] = w
+    _draw_magic_star_at(f6, 14, 2, phase=0)
+    _draw_magic_star_at(f6, 1, 1, phase=2)
+    _draw_magic_star_at(f6, 1, 14, phase=3)
+    _draw_magic_star_at(f6, 7, 14, phase=1)
+
+    # Frame 7: 4 stars, start white overlay (lightest)
+    f7 = _frame(eyes="happy", mouth="grin")
+    f7[3][14] = w; f7[4][14] = w; f7[5][14] = w; f7[6][14] = w; f7[7][14] = w
+    _draw_magic_star_at(f7, 14, 2, phase=1)
+    _draw_magic_star_at(f7, 1, 1, phase=3)
+    _draw_magic_star_at(f7, 1, 14, phase=0)
+    _draw_magic_star_at(f7, 7, 14, phase=2)
+    # Light white overlay on entire screen (25% white mixed)
+    for y in range(16):
+        for x in range(16):
+            if f7[y][x] != _BG:
+                r, g, b = f7[y][x]
+                f7[y][x] = (min(255, r + 64), min(255, g + 64), min(255, b + 64))
+            else:
+                f7[y][x] = (64, 64, 64)
+
+    # Frame 8: Medium white overlay (50% white mixed)
+    f8 = _frame(eyes="happy", mouth="grin")
+    f8[3][14] = w; f8[4][14] = w; f8[5][14] = w; f8[6][14] = w; f8[7][14] = w
+    _draw_magic_star_at(f8, 14, 2, phase=2)
+    _draw_magic_star_at(f8, 1, 1, phase=0)
+    _draw_magic_star_at(f8, 1, 14, phase=1)
+    _draw_magic_star_at(f8, 7, 14, phase=3)
+    for y in range(16):
+        for x in range(16):
+            if f8[y][x] != _BG:
+                r, g, b = f8[y][x]
+                f8[y][x] = (min(255, r + 128), min(255, g + 128), min(255, b + 128))
+            else:
+                f8[y][x] = (128, 128, 128)
+
+    # Frame 9: Heavy white overlay (75% white mixed)
+    f9 = _frame(eyes="happy", mouth="grin")
+    f9[3][14] = w; f9[4][14] = w; f9[5][14] = w; f9[6][14] = w; f9[7][14] = w
+    _draw_magic_star_at(f9, 14, 2, phase=3)
+    _draw_magic_star_at(f9, 1, 1, phase=1)
+    _draw_magic_star_at(f9, 1, 14, phase=2)
+    _draw_magic_star_at(f9, 7, 14, phase=0)
+    for y in range(16):
+        for x in range(16):
+            if f9[y][x] != _BG:
+                r, g, b = f9[y][x]
+                f9[y][x] = (min(255, r + 192), min(255, g + 192), min(255, b + 192))
+            else:
+                f9[y][x] = (192, 192, 192)
+
+    # Frame 10: Full white screen
+    f10 = _blank()
+    for y in range(16):
+        for x in range(16):
+            f10[y][x] = _WHITE
+
+    return [f1, f2, f3, f4, f5, f6, f7, f8, f9, f10], [400, 500, 500, 300, 500, 350, 300, 300, 300, 3000]
 
 
 # --- Registry ---

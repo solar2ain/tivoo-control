@@ -666,7 +666,415 @@ def thinking():
     return [f1, f2, f3, f4, f5], [600, 400, 400, 400, 400]
 
 
-# --- Registry ---
+# --- Workflow Helpers ---
+
+def _face_base_at(cx=7.5, cy=7.5, color=None):
+    """Yellow circle face at custom center position."""
+    p = _empty()
+    _circle(cx, cy, 6.5, p, color or _YELLOW)
+    return p
+
+
+def _mini_face(p, cx, cy, color=None):
+    """Draw small circle face with dot eyes and smile mouth."""
+    c = color or _YELLOW
+    _circle(cx, cy, 3.5, p, c)
+    iy = int(cy)
+    ix = int(cx)
+    # eyes: moved outward
+    if 0 <= iy - 1 < 16 and 0 <= ix - 2 < 16:
+        p[iy - 1][ix - 2] = _BLACK
+    if 0 <= iy - 1 < 16 and 0 <= ix + 2 < 16:
+        p[iy - 1][ix + 2] = _BLACK
+    # smile mouth: 3px wide
+    if 0 <= iy + 1 < 16:
+        for dx in (-1, 0, 1):
+            if 0 <= ix + dx < 16:
+                p[iy + 1][ix + dx] = _BLACK
+
+
+def _draw_gear(p, phase=0):
+    """Draw gear at top-right with clockwise chase highlight."""
+    g = (170, 170, 170)
+    h = (80, 80, 80)
+    bright = (240, 240, 240)
+    base = (110, 110, 110)
+
+    def px(r, c, color=g):
+        if 0 <= r < 16 and 0 <= c < 16:
+            p[r][c] = color
+
+    # Center body (2-4-4-2)
+    px(1, 11); px(1, 12)
+    px(2, 10); px(2, 11); px(2, 12); px(2, 13)
+    px(3, 10); px(3, 11); px(3, 12); px(3, 13)
+    px(4, 11); px(4, 12)
+    # Axle hole
+    px(2, 11, h); px(2, 12, h)
+    px(3, 11, h); px(3, 12, h)
+    # 8 teeth clockwise
+    teeth = [
+        [(0, 11), (0, 12)],   # N
+        [(1, 13)],             # NE
+        [(2, 14), (3, 14)],   # E
+        [(4, 13)],             # SE
+        [(5, 11), (5, 12)],   # S
+        [(4, 10)],             # SW
+        [(2, 9), (3, 9)],     # W
+        [(1, 10)],             # NW
+    ]
+    lit = {phase * 2 % 8, (phase * 2 + 1) % 8}
+    for i, positions in enumerate(teeth):
+        color = bright if i in lit else base
+        for r, c in positions:
+            px(r, c, color)
+
+
+def _draw_bell_default(p, cx, tilt=0):
+    """Draw narrow rounded bell for default emoji — silver to contrast yellow face."""
+    g = (200, 200, 210)   # silver
+    d = (150, 150, 160)   # dark silver
+    w = _WHITE
+    x = cx + tilt
+
+    def px(r, c, color):
+        if 0 <= r < 16 and 0 <= c < 16:
+            p[r][c] = color
+
+    px(0, x, w)
+    px(1, x - 1, d); px(1, x, g); px(1, x + 1, d)
+    for row in (2, 3, 4, 5):
+        for dx in range(-2, 3):
+            px(row, x + dx, d if abs(dx) == 2 else g)
+    for dx in range(-3, 4):
+        px(6, x + dx, d if abs(dx) == 3 else g)
+    px(7, x + tilt, w)
+
+
+def _draw_checkbox_default(p, y, x, checked=False):
+    """Draw 3x3 checkbox. Checked = green center dot."""
+    w = _WHITE
+    p[y][x] = w;     p[y][x+1] = w;     p[y][x+2] = w
+    p[y+1][x] = w;   p[y+1][x+1] = _BG; p[y+1][x+2] = w
+    p[y+2][x] = w;   p[y+2][x+1] = w;   p[y+2][x+2] = w
+    if checked:
+        p[y+1][x+1] = _GREEN
+
+
+def _draw_question_mark_default(p, y, x):
+    """Draw ? mark. 3 wide, 6 tall."""
+    c = _WHITE
+    p[y][x] = c; p[y][x+1] = c; p[y][x+2] = c
+    p[y+1][x+2] = c
+    p[y+2][x+1] = c
+    p[y+3][x+1] = c
+    p[y+5][x+1] = c
+
+
+def _draw_checkmark_default(p, y, x, color=None):
+    """Draw ✓ at right side — same shape as Claude done."""
+    c = color or _GREEN
+    #   col: x  x+1 x+2 x+3 x+4 x+5
+    # y+0: .   .    .    .    .    X
+    # y+1: .   .    .    .    X    .
+    # y+2: X   .    .    X    .    .
+    # y+3: .   X    X    .    .    .
+    p[y][x+5] = c
+    p[y+1][x+4] = c
+    p[y+2][x+3] = c; p[y+2][x] = c
+    p[y+3][x+2] = c; p[y+3][x+1] = c
+
+
+# --- Workflow Emotions ---
+
+def working():
+    """Working — focused expression, mumbling mouth, steam rising."""
+    _STEAM = (200, 200, 220)  # light gray-blue
+
+    f1 = _face_base()
+    _draw_eyes(f1, "focused")
+    _draw_mouth(f1, "determined")
+
+    f2 = _face_base()
+    _draw_eyes(f2, "focused")
+    _draw_mouth(f2, "open")
+    f2[1][6] = _STEAM
+
+    f3 = _face_base()
+    _draw_eyes(f3, "squint")
+    _draw_mouth(f3, "flat")
+    f3[0][7] = _STEAM
+    f3[1][9] = _STEAM
+
+    f4 = _face_base()
+    _draw_eyes(f4, "focused")
+    _draw_mouth(f4, "open")
+    f4[0][8] = _STEAM
+    f4[1][6] = _STEAM
+
+    return [f1, f2, f3, f4], [600, 400, 400, 400]
+
+
+def subagent():
+    """Subagent — face fades left, two mini faces split up and down."""
+    _DIM = (200, 180, 40)    # dimmed yellow
+    _FADE = (150, 130, 25)   # very faded yellow
+
+    # F1: normal face
+    f1 = _face_base()
+    _draw_eyes(f1, "open")
+    _draw_mouth(f1, "smile")
+
+    # F2: face shifts left + dims, two dim mini faces appear
+    f2 = _face_base_at(4.5, 7.5, _DIM)
+    # eyes shifted left (cx 4.5 vs normal 7.5 = -3)
+    for dy in (0, 1):
+        f2[5 + dy][1] = _BLACK; f2[5 + dy][2] = _BLACK
+        f2[5 + dy][7] = _BLACK; f2[5 + dy][8] = _BLACK
+    # small mouth shifted left
+    f2[10][4] = _BLACK; f2[10][5] = _BLACK
+    _mini_face(f2, 12, 5, _DIM)
+    _mini_face(f2, 12, 11, _DIM)
+
+    # F3: face almost off-screen, bright mini faces split further apart
+    f3 = _face_base_at(1.5, 7.5, _FADE)
+    # eyes on faded face (cx 1.5 = shift -6)
+    for dy in (0, 1):
+        f3[5 + dy][0] = _BLACK
+        f3[5 + dy][4] = _BLACK; f3[5 + dy][5] = _BLACK
+    _mini_face(f3, 11, 3)
+    _mini_face(f3, 11, 12)
+
+    return [f1, f2, f3], [600, 400, 400]
+
+
+def done():
+    """Done — bounce + checkmark + sparkles."""
+    f1 = _face_base()
+    _draw_eyes(f1, "open")
+    _draw_mouth(f1, "smile")
+
+    # Bounce up (cy=6.5, shift -1)
+    f2 = _face_base_at(7.5, 6.5)
+    # squint eyes shifted up 1
+    f2[5][4] = _BLACK; f2[5][5] = _BLACK
+    f2[5][10] = _BLACK; f2[5][11] = _BLACK
+    # grin mouth shifted up 1 (matches _draw_mouth "grin" exactly)
+    f2[8][4] = _BLACK; f2[8][11] = _BLACK
+    for x in range(5, 11):
+        f2[9][x] = _BLACK
+    f2[9][6] = _WHITE; f2[9][7] = _WHITE; f2[9][8] = _WHITE; f2[9][9] = _WHITE
+    for x in range(5, 11):
+        f2[10][x] = _BLACK
+
+    # Settle + checkmark
+    f3 = _face_base()
+    _draw_eyes(f3, "squint")
+    _draw_mouth(f3, "grin")
+    _draw_checkmark_default(f3, 2, 10)
+
+    # Sparkles
+    f4 = _face_base()
+    _draw_eyes(f4, "squint")
+    _draw_mouth(f4, "laugh")
+    _draw_checkmark_default(f4, 2, 10)
+    _draw_confetti(f4, density=2)
+
+    return [f1, f2, f3, f4], [400, 300, 400, 500]
+
+
+def notify():
+    """Notify — bell sways, face reacts."""
+    f1 = _face_base()
+    _draw_eyes(f1, "open")
+    _draw_mouth(f1, "smile")
+
+    f2 = _face_base()
+    _draw_eyes(f2, "open")
+    _draw_mouth(f2, "open")
+    _draw_bell_default(f2, 12, tilt=0)
+
+    f3 = _face_base()
+    _draw_eyes(f3, "half")
+    _draw_mouth(f3, "open_big")
+    _draw_bell_default(f3, 12, tilt=-1)
+
+    f4 = _face_base()
+    _draw_eyes(f4, "open")
+    _draw_mouth(f4, "open")
+    _draw_bell_default(f4, 12, tilt=1)
+
+    f5 = _face_base()
+    _draw_eyes(f5, "closed")
+    _draw_mouth(f5, "open_big")
+    _draw_bell_default(f5, 12, tilt=0)
+
+    return [f1, f2, f3, f4, f5], [500, 300, 300, 300, 400]
+
+
+def tooluse():
+    """Tool use — gear rotates at top-right."""
+    f1 = _face_base()
+    _draw_eyes(f1, "focused")
+    _draw_mouth(f1, "determined")
+    _draw_gear(f1, phase=0)
+
+    f2 = _face_base()
+    _draw_eyes(f2, "focused")
+    _draw_mouth(f2, "determined")
+    _draw_gear(f2, phase=1)
+
+    f3 = _face_base()
+    _draw_eyes(f3, "squint")
+    _draw_mouth(f3, "determined")
+    _draw_gear(f3, phase=2)
+
+    f4 = _face_base()
+    _draw_eyes(f4, "focused")
+    _draw_mouth(f4, "determined")
+    _draw_gear(f4, phase=3)
+
+    return [f1, f2, f3, f4], [300, 300, 300, 300]
+
+
+def oops():
+    """Oops — dizzy eyes + exclamation + face shakes."""
+    f1 = _face_base()
+    _draw_eyes(f1, "open")
+    _draw_mouth(f1, "smile")
+
+    f2 = _face_base()
+    _draw_eyes(f2, "dizzy")
+    _draw_mouth(f2, "open")
+    _draw_exclaim(f2)
+
+    # Shake left (cx=6.5, shift -1)
+    f3 = _face_base_at(6.5, 7.5)
+    _tint_red(f3)
+    # dizzy eyes shifted left
+    f3[5][3] = _BLACK; f3[5][5] = _BLACK; f3[6][4] = _BLACK
+    f3[7][3] = _BLACK; f3[7][5] = _BLACK
+    f3[5][8] = _BLACK; f3[5][10] = _BLACK; f3[6][9] = _BLACK
+    f3[7][8] = _BLACK; f3[7][10] = _BLACK
+    # mouth shifted left
+    f3[10][6] = _BLACK; f3[10][7] = _BLACK
+    f3[11][6] = _BLACK; f3[11][7] = _BLACK
+    _draw_exclaim(f3)
+
+    # Shake right (cx=8.5, shift +1)
+    f4 = _face_base_at(8.5, 7.5)
+    _tint_red(f4)
+    # dizzy eyes shifted right
+    f4[5][5] = _BLACK; f4[5][7] = _BLACK; f4[6][6] = _BLACK
+    f4[7][5] = _BLACK; f4[7][7] = _BLACK
+    f4[5][10] = _BLACK; f4[5][12] = _BLACK; f4[6][11] = _BLACK
+    f4[7][10] = _BLACK; f4[7][12] = _BLACK
+    # mouth shifted right
+    f4[10][8] = _BLACK; f4[10][9] = _BLACK
+    f4[11][8] = _BLACK; f4[11][9] = _BLACK
+    _draw_exclaim(f4)
+
+    f5 = _face_base()
+    _draw_eyes(f5, "dizzy")
+    _draw_mouth(f5, "sad")
+    _draw_exclaim(f5)
+
+    return [f1, f2, f3, f4, f5], [500, 400, 200, 200, 400]
+
+
+def tasklist():
+    """Tasklist — face shifts left, checkboxes appear."""
+    f1 = _face_base_at(5.5, 7.5)
+    _draw_eyes(f1, "open")
+    _draw_mouth(f1, "smile")
+
+    f2 = _face_base_at(5.5, 7.5)
+    _draw_eyes(f2, "lookup")
+    _draw_mouth(f2, "small")
+    _draw_checkbox_default(f2, 3, 13)
+
+    f3 = _face_base_at(5.5, 7.5)
+    _draw_eyes(f3, "lookup")
+    _draw_mouth(f3, "small")
+    _draw_checkbox_default(f3, 3, 13)
+    _draw_checkbox_default(f3, 7, 13)
+
+    f4 = _face_base_at(5.5, 7.5)
+    _draw_eyes(f4, "lookup")
+    _draw_mouth(f4, "small")
+    _draw_checkbox_default(f4, 3, 13)
+    _draw_checkbox_default(f4, 7, 13)
+    _draw_checkbox_default(f4, 11, 13)
+
+    return [f1, f2, f3, f4], [500, 400, 400, 400]
+
+
+def taskdone():
+    """Task done — checkbox gets checked + confetti."""
+    f1 = _face_base_at(5.5, 7.5)
+    _draw_eyes(f1, "open")
+    _draw_mouth(f1, "smile")
+    _draw_checkbox_default(f1, 3, 13, checked=True)
+    _draw_checkbox_default(f1, 7, 13)
+    _draw_checkbox_default(f1, 11, 13)
+
+    f2 = _face_base_at(5.5, 7.5)
+    _draw_eyes(f2, "squint")
+    _draw_mouth(f2, "grin")
+    _draw_checkbox_default(f2, 3, 13, checked=True)
+    _draw_checkbox_default(f2, 7, 13, checked=True)
+    _draw_checkbox_default(f2, 11, 13)
+
+    f3 = _face_base_at(5.5, 7.5)
+    _draw_eyes(f3, "squint")
+    _draw_mouth(f3, "laugh")
+    _draw_checkbox_default(f3, 3, 13, checked=True)
+    _draw_checkbox_default(f3, 7, 13, checked=True)
+    _draw_checkbox_default(f3, 11, 13)
+    _draw_confetti(f3, density=2)
+
+    return [f1, f2, f3], [500, 400, 600]
+
+
+def question():
+    """Question — thinking dots then ? sways."""
+    f1 = _face_base()
+    _draw_eyes(f1, "open")
+    _draw_mouth(f1, "small")
+
+    f2 = _face_base()
+    _draw_eyes(f2, "lookup")
+    _draw_mouth(f2, "small")
+    f2[1][7] = _WHITE
+
+    f3 = _face_base()
+    _draw_eyes(f3, "lookup")
+    _draw_mouth(f3, "small")
+    f3[1][6] = _WHITE; f3[1][8] = _WHITE
+
+    f4 = _face_base()
+    _draw_eyes(f4, "lookup")
+    _draw_mouth(f4, "small")
+    f4[1][5] = _WHITE; f4[1][7] = _WHITE; f4[1][9] = _WHITE
+
+    f5 = _face_base()
+    _draw_eyes(f5, "open")
+    _draw_mouth(f5, "open")
+    _draw_question_mark_default(f5, 0, 12)
+
+    f6 = _face_base()
+    _draw_eyes(f6, "open")
+    _draw_mouth(f6, "open")
+    _draw_question_mark_default(f6, 0, 11)
+
+    f7 = _face_base()
+    _draw_eyes(f7, "open")
+    _draw_mouth(f7, "open")
+    _draw_question_mark_default(f7, 0, 12)
+
+    return [f1, f2, f3, f4, f5, f6, f7], [500, 350, 350, 400, 400, 400, 400]
+
+    return [f1, f2, f3, f4, f5, f6], [500, 350, 400, 400, 400, 400]
 
 EMOTION_PRESETS = {
     "happy": ("Happy face", happy),
@@ -684,4 +1092,14 @@ EMOTION_PRESETS = {
     "kiss": ("Flying kiss", kiss),
     "standby": ("Standby face", standby),
     "thinking": ("Thinking face", thinking),
+    # Workflow emotions
+    "working": ("Working face", working),
+    "subagent": ("Subagent face", subagent),
+    "done": ("Done face", done),
+    "notify": ("Notify face", notify),
+    "tooluse": ("Tool use face", tooluse),
+    "oops": ("Oops face", oops),
+    "tasklist": ("Tasklist face", tasklist),
+    "taskdone": ("Task done face", taskdone),
+    "question": ("Question face", question),
 }

@@ -991,17 +991,30 @@ def taskdone():
     def _eyes_open(p):
         for dy in (0, 1):
             for dx in (0, 1):
-                p[6 + dy][4 + xo + dx] = _BLACK
-                p[6 + dy][10 + xo + dx] = _BLACK
+                p[6 + dy][4 + xo + 1 + dx] = _BLACK
+                p[6 + dy][10 + xo + 1 + dx] = _BLACK
 
     def _eyes_squint(p):
         for dx in range(3):
-            p[7][4 + xo + dx] = _BLACK
-            p[7][10 + xo + dx] = _BLACK
+            p[7][4 + xo + 1 + dx] = _BLACK
+            p[7][10 + xo + 1 + dx] = _BLACK
+
+    def _mouth_smile(p):
+        p[9][5+xo] = _BLACK; p[9][10+xo] = _BLACK
+        for x in range(6+xo, 10+xo):
+            p[10][x] = _BLACK
+
+    def _mouth_grin(p):
+        for x in range(5+xo, 11+xo):
+            p[9][x] = _BLACK
+        p[9][6+xo] = _WHITE; p[9][7+xo] = _WHITE; p[9][8+xo] = _WHITE; p[9][9+xo] = _WHITE
+        for x in range(5+xo, 11+xo):
+            p[10][x] = _BLACK
 
     # First checked, second unchecked, third unchecked
     f1 = _claude_base_at(0, xo)
     _eyes_open(f1)
+    _mouth_smile(f1)
     _draw_checkbox(f1, 3, 13, checked=True)
     _draw_checkbox(f1, 7, 13)
     _draw_checkbox(f1, 11, 13)
@@ -1009,6 +1022,7 @@ def taskdone():
     # Second gets checked
     f2 = _claude_base_at(0, xo)
     _eyes_squint(f2)
+    _mouth_smile(f2)
     _draw_checkbox(f2, 3, 13, checked=True)
     _draw_checkbox(f2, 7, 13, checked=True)
     _draw_checkbox(f2, 11, 13)
@@ -1016,6 +1030,7 @@ def taskdone():
     # Confetti
     f3 = _claude_base_at(0, xo)
     _eyes_squint(f3)
+    _mouth_smile(f3)
     _draw_checkbox(f3, 3, 13, checked=True)
     _draw_checkbox(f3, 7, 13, checked=True)
     _draw_checkbox(f3, 11, 13)
@@ -1046,22 +1061,26 @@ def question():
 
     f3 = _claude_base()
     _draw_eyes(f3, "lookup")
-    f3[2][5] = _WHITE; f3[2][7] = _WHITE; f3[2][9] = _WHITE
+    f3[2][6] = _WHITE; f3[2][8] = _WHITE
+
+    f4 = _claude_base()
+    _draw_eyes(f4, "lookup")
+    f4[2][5] = _WHITE; f4[2][7] = _WHITE; f4[2][9] = _WHITE
 
     # ? appears, sways left/right
-    f4 = _claude_base()
-    _draw_eyes(f4, "open")
-    _draw_question_mark(f4, 0, 12)
-
     f5 = _claude_base()
     _draw_eyes(f5, "open")
-    _draw_question_mark(f5, 0, 11)
+    _draw_question_mark(f5, 0, 12)
 
     f6 = _claude_base()
     _draw_eyes(f6, "open")
-    _draw_question_mark(f6, 0, 12)
+    _draw_question_mark(f6, 0, 11)
 
-    return [f1, f2, f3, f4, f5, f6], [500, 350, 400, 400, 400, 400]
+    f7 = _claude_base()
+    _draw_eyes(f7, "open")
+    _draw_question_mark(f7, 0, 12)
+
+    return [f1, f2, f3, f4, f5, f6, f7], [500, 350, 350, 400, 400, 400, 400]
 
 
 def haiku():

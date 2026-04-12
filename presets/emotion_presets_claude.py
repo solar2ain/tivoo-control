@@ -26,13 +26,13 @@ _CYAN = (0, 220, 255)
 # --- Base: short & wide Claude ---
 
 _BODY = {
-    3: (2, 13),
-    4: (2, 13), 5: (2, 13), 6: (2, 13),
-    7: (1, 14), 8: (1, 14), 9: (1, 14), 10: (2, 13),
+    4: (2, 13),
+    5: (2, 13), 6: (2, 13), 7: (2, 13),
+    8: (1, 14), 9: (1, 14), 10: (1, 14), 11: (2, 13),
 }
 _LEGS = [
-    (11, 3), (11, 5), (11, 10), (11, 12),
     (12, 3), (12, 5), (12, 10), (12, 12),
+    (13, 3), (13, 5), (13, 10), (13, 12),
 ]
 
 
@@ -64,97 +64,97 @@ def _draw_eyes(p, style):
     if style == "open":
         for dy in (0, 1):
             for dx in (0, 1):
-                p[5 + dy][4 + dx] = _BLACK
-                p[5 + dy][10 + dx] = _BLACK
+                p[6 + dy][4 + dx] = _BLACK
+                p[6 + dy][10 + dx] = _BLACK
     elif style == "open_wide":
         # 2x3 rectangular eyes
         for dy in (0, 1):
             for dx in range(3):
-                p[5 + dy][4 + dx] = _BLACK
-                p[5 + dy][10 + dx] = _BLACK
+                p[6 + dy][4 + dx] = _BLACK
+                p[6 + dy][10 + dx] = _BLACK
     elif style == "squint":
         for dx in range(3):
-            p[6][4 + dx] = _BLACK
-            p[6][10 + dx] = _BLACK
+            p[7][4 + dx] = _BLACK
+            p[7][10 + dx] = _BLACK
     elif style == "closed":
-        p[6][4] = _BLACK; p[6][5] = _BLACK; p[6][6] = _BLACK
-        p[6][10] = _BLACK; p[6][11] = _BLACK; p[6][12] = _BLACK
+        p[7][4] = _BLACK; p[7][5] = _BLACK; p[7][6] = _BLACK
+        p[7][10] = _BLACK; p[7][11] = _BLACK; p[7][12] = _BLACK
     elif style == "half":
-        p[6][4] = _BLACK; p[6][5] = _BLACK
-        p[5][4] = _DARK_O; p[5][5] = _DARK_O
-        p[6][10] = _BLACK; p[6][11] = _BLACK
-        p[5][10] = _DARK_O; p[5][11] = _DARK_O
+        p[7][4] = _BLACK; p[7][5] = _BLACK
+        p[6][4] = _DARK_O; p[6][5] = _DARK_O
+        p[7][10] = _BLACK; p[7][11] = _BLACK
+        p[6][10] = _DARK_O; p[6][11] = _DARK_O
     elif style == "wide":
         for dy in range(3):
             for dx in range(3):
-                p[4 + dy][4 + dx] = _WHITE
-                p[4 + dy][9 + dx] = _WHITE
-        p[5][5] = _BLACK
-        p[5][10] = _BLACK
+                p[5 + dy][4 + dx] = _WHITE
+                p[5 + dy][9 + dx] = _WHITE
+        p[6][5] = _BLACK
+        p[6][10] = _BLACK
     elif style == "wider":
         for dy in range(3):
             for dx in range(3):
-                p[4 + dy][3 + dx] = _WHITE
-                p[4 + dy][9 + dx] = _WHITE
+                p[5 + dy][3 + dx] = _WHITE
+                p[5 + dy][9 + dx] = _WHITE
         for dy in (0, 1):
             for dx in (0, 1):
-                p[4 + dy][4 + dx] = _BLACK
-                p[4 + dy][10 + dx] = _BLACK
+                p[5 + dy][4 + dx] = _BLACK
+                p[5 + dy][10 + dx] = _BLACK
     elif style == "hearts":
         h = _RED
         # Left heart centered at col 5
-        p[5][4] = h; p[5][6] = h
-        p[6][4] = h; p[6][5] = h; p[6][6] = h
-        p[7][5] = h
+        p[6][4] = h; p[6][6] = h
+        p[7][4] = h; p[7][5] = h; p[7][6] = h
+        p[8][5] = h
         # Right heart centered at col 10
-        p[5][9] = h; p[5][11] = h
-        p[6][9] = h; p[6][10] = h; p[6][11] = h
-        p[7][10] = h
+        p[6][9] = h; p[6][11] = h
+        p[7][9] = h; p[7][10] = h; p[7][11] = h
+        p[8][10] = h
     elif style == "hearts_big":
         h = _RED
         w = _PINK
         # Left heart centered at col 5
-        p[4][4] = h; p[4][6] = h
-        p[5][3] = h; p[5][4] = w; p[5][5] = h; p[5][6] = w; p[5][7] = h
-        p[6][4] = h; p[6][5] = h; p[6][6] = h
-        p[7][5] = h
+        p[5][4] = h; p[5][6] = h
+        p[6][3] = h; p[6][4] = w; p[6][5] = h; p[6][6] = w; p[6][7] = h
+        p[7][4] = h; p[7][5] = h; p[7][6] = h
+        p[8][5] = h
         # Right heart centered at col 10
-        p[4][9] = h; p[4][11] = h
-        p[5][8] = h; p[5][9] = w; p[5][10] = h; p[5][11] = w; p[5][12] = h
-        p[6][9] = h; p[6][10] = h; p[6][11] = h
-        p[7][10] = h
+        p[5][9] = h; p[5][11] = h
+        p[6][8] = h; p[6][9] = w; p[6][10] = h; p[6][11] = w; p[6][12] = h
+        p[7][9] = h; p[7][10] = h; p[7][11] = h
+        p[8][10] = h
     elif style == "dizzy":
-        p[5][4] = _BLACK; p[5][6] = _BLACK
-        p[6][5] = _BLACK
-        p[7][4] = _BLACK; p[7][6] = _BLACK
-        p[5][9] = _BLACK; p[5][11] = _BLACK
-        p[6][10] = _BLACK
-        p[7][9] = _BLACK; p[7][11] = _BLACK
+        p[6][4] = _BLACK; p[6][6] = _BLACK
+        p[7][5] = _BLACK
+        p[8][4] = _BLACK; p[8][6] = _BLACK
+        p[6][9] = _BLACK; p[6][11] = _BLACK
+        p[7][10] = _BLACK
+        p[8][9] = _BLACK; p[8][11] = _BLACK
     elif style == "one_closed":
         for dy in (0, 1):
             for dx in (0, 1):
-                p[5 + dy][4 + dx] = _BLACK
-        p[6][10] = _BLACK; p[6][11] = _BLACK; p[6][12] = _BLACK
+                p[6 + dy][4 + dx] = _BLACK
+        p[7][10] = _BLACK; p[7][11] = _BLACK; p[7][12] = _BLACK
     elif style == "angry":
         # 2-row diagonal — outer high, inner low
         # Left eye
-        p[5][3] = _BLACK; p[5][4] = _BLACK; p[5][5] = _BLACK
-        p[6][4] = _BLACK; p[6][5] = _BLACK; p[6][6] = _BLACK
+        p[6][3] = _BLACK; p[6][4] = _BLACK; p[6][5] = _BLACK
+        p[7][4] = _BLACK; p[7][5] = _BLACK; p[7][6] = _BLACK
         # Right eye
-        p[5][10] = _BLACK; p[5][11] = _BLACK; p[5][12] = _BLACK
-        p[6][9] = _BLACK; p[6][10] = _BLACK; p[6][11] = _BLACK
+        p[6][10] = _BLACK; p[6][11] = _BLACK; p[6][12] = _BLACK
+        p[7][9] = _BLACK; p[7][10] = _BLACK; p[7][11] = _BLACK
     elif style == "angry_deep":
         # Thicker 2-row diagonal
-        p[4][3] = _BLACK; p[5][3] = _BLACK; p[5][4] = _BLACK; p[5][5] = _BLACK
-        p[6][4] = _BLACK; p[6][5] = _BLACK; p[6][6] = _BLACK; p[7][6] = _BLACK
-        p[4][12] = _BLACK; p[5][10] = _BLACK; p[5][11] = _BLACK; p[5][12] = _BLACK
-        p[6][9] = _BLACK; p[6][10] = _BLACK; p[6][11] = _BLACK; p[7][9] = _BLACK
+        p[5][3] = _BLACK; p[6][3] = _BLACK; p[6][4] = _BLACK; p[6][5] = _BLACK
+        p[7][4] = _BLACK; p[7][5] = _BLACK; p[7][6] = _BLACK; p[8][6] = _BLACK
+        p[5][12] = _BLACK; p[6][10] = _BLACK; p[6][11] = _BLACK; p[6][12] = _BLACK
+        p[7][9] = _BLACK; p[7][10] = _BLACK; p[7][11] = _BLACK; p[8][9] = _BLACK
     elif style == "lookup":
         # Eyes shifted up one row (thinking)
         for dy in (0, 1):
             for dx in (0, 1):
-                p[4 + dy][4 + dx] = _BLACK
-                p[4 + dy][10 + dx] = _BLACK
+                p[5 + dy][4 + dx] = _BLACK
+                p[5 + dy][10 + dx] = _BLACK
 
 
 # --- Mouth (only for specific emotions) ---
@@ -163,39 +163,39 @@ def _draw_mouth(p, style):
     """Draw mouth in body area — most emotions don't use this."""
     if style == "smile":
         # Upward curve — corners high, center low
-        p[8][5] = _BLACK; p[8][10] = _BLACK
-        p[9][6] = _BLACK; p[9][7] = _BLACK; p[9][8] = _BLACK; p[9][9] = _BLACK
+        p[9][5] = _BLACK; p[9][10] = _BLACK
+        p[10][6] = _BLACK; p[10][7] = _BLACK; p[10][8] = _BLACK; p[10][9] = _BLACK
     elif style == "grin":
         # Wide grin with teeth
-        p[8][5] = _BLACK; p[8][6] = _BLACK; p[8][7] = _BLACK
-        p[8][8] = _BLACK; p[8][9] = _BLACK; p[8][10] = _BLACK
-        p[8][6] = _WHITE; p[8][7] = _WHITE; p[8][8] = _WHITE; p[8][9] = _WHITE
         p[9][5] = _BLACK; p[9][6] = _BLACK; p[9][7] = _BLACK
         p[9][8] = _BLACK; p[9][9] = _BLACK; p[9][10] = _BLACK
+        p[9][6] = _WHITE; p[9][7] = _WHITE; p[9][8] = _WHITE; p[9][9] = _WHITE
+        p[10][5] = _BLACK; p[10][6] = _BLACK; p[10][7] = _BLACK
+        p[10][8] = _BLACK; p[10][9] = _BLACK; p[10][10] = _BLACK
     elif style == "laugh":
         for x in range(5, 11):
-            p[8][x] = _BLACK
-        p[9][5] = _BLACK; p[9][10] = _BLACK
+            p[9][x] = _BLACK
+        p[10][5] = _BLACK; p[10][10] = _BLACK
         for x in range(6, 10):
-            p[9][x] = _RED
+            p[10][x] = _RED
     elif style == "open":
-        p[8][7] = _BLACK; p[8][8] = _BLACK
         p[9][7] = _BLACK; p[9][8] = _BLACK
+        p[10][7] = _BLACK; p[10][8] = _BLACK
     elif style == "open_big":
         for x in range(6, 10):
-            p[8][x] = _BLACK
-        p[9][6] = _BLACK; p[9][9] = _BLACK
-        p[9][7] = _RED; p[9][8] = _RED
+            p[9][x] = _BLACK
+        p[10][6] = _BLACK; p[10][9] = _BLACK
+        p[10][7] = _RED; p[10][8] = _RED
     elif style == "wavy":
         # _--_ shape: middle stays level, sides droop down
-        p[9][7] = _BLACK; p[9][8] = _BLACK
-        p[10][6] = _BLACK; p[10][9] = _BLACK
+        p[10][7] = _BLACK; p[10][8] = _BLACK
+        p[11][6] = _BLACK; p[11][9] = _BLACK
     elif style == "flat":
         for x in range(6, 10):
-            p[9][x] = _BLACK
+            p[10][x] = _BLACK
     elif style == "kiss":
-        p[8][7] = _RED; p[8][8] = _RED
         p[9][7] = _RED; p[9][8] = _RED
+        p[10][7] = _RED; p[10][8] = _RED
 
 
 # --- Brows ---
@@ -203,8 +203,8 @@ def _draw_mouth(p, style):
 def _draw_brows(p, style):
     """Draw eyebrows — only angry_deep fits the compact shape."""
     if style == "angry_deep":
-        p[4][3] = _BLACK; p[4][4] = _BLACK; p[4][5] = _BLACK; p[5][6] = _BLACK
-        p[4][12] = _BLACK; p[4][11] = _BLACK; p[4][10] = _BLACK; p[5][9] = _BLACK
+        p[5][3] = _BLACK; p[5][4] = _BLACK; p[5][5] = _BLACK; p[6][6] = _BLACK
+        p[5][12] = _BLACK; p[5][11] = _BLACK; p[5][10] = _BLACK; p[6][9] = _BLACK
 
 
 # --- Effects ---
@@ -213,80 +213,86 @@ def _draw_tear(p, side="both", heavy=False):
     lb = _BLUE
     lw = (150, 200, 255)
     if side in ("left", "both"):
-        p[7][4] = lb; p[8][4] = lb; p[9][4] = lb
+        p[8][4] = lb; p[9][4] = lb; p[10][4] = lb
         if heavy:
-            p[10][4] = lb
-            p[8][3] = lw; p[9][3] = lw
-            p[8][5] = lw
+            p[11][4] = lb
+            p[9][3] = lw; p[10][3] = lw
+            p[9][5] = lw
     if side in ("right", "both"):
-        p[7][12] = lb; p[8][12] = lb; p[9][12] = lb
+        p[8][12] = lb; p[9][12] = lb; p[10][12] = lb
         if heavy:
-            p[10][12] = lb
-            p[8][13] = lw; p[9][13] = lw
-            p[8][11] = lw
+            p[11][12] = lb
+            p[9][13] = lw; p[10][13] = lw
+            p[9][11] = lw
 
 
 def _draw_sweat(p, side="left"):
     if side == "left":
-        p[3][1] = _BLUE; p[4][1] = _BLUE
+        p[4][1] = _BLUE; p[5][1] = _BLUE
     elif side == "both":
-        p[3][1] = _BLUE; p[4][1] = _BLUE
-        p[3][14] = _BLUE; p[4][14] = _BLUE
+        p[4][1] = _BLUE; p[5][1] = _BLUE
+        p[4][14] = _BLUE; p[5][14] = _BLUE
 
 
 def _draw_zzz(p):
     z = _WHITE
-    p[1][11] = z; p[1][12] = z; p[1][13] = z
-    p[2][13] = z
-    p[3][12] = z
-    p[4][11] = z
-    p[5][11] = z; p[5][12] = z; p[5][13] = z
+    p[2][11] = z; p[2][12] = z; p[2][13] = z
+    p[3][13] = z
+    p[4][12] = z
+    p[5][11] = z
+    p[6][11] = z; p[6][12] = z; p[6][13] = z
 
 
 def _draw_sunglasses(p):
     g = _BLACK
     b = (60, 60, 60)
     for x in range(3, 13):
-        p[5][x] = g
+        p[6][x] = g
     for dy in (0, 1):
         for dx in range(4):
-            p[6 + dy][3 + dx] = b
-            p[6 + dy][9 + dx] = b
+            p[7 + dy][3 + dx] = b
+            p[7 + dy][9 + dx] = b
 
 
 def _draw_sunglasses_shine(p):
     _draw_sunglasses(p)
-    p[6][4] = _WHITE; p[6][5] = _WHITE
-    p[6][10] = _WHITE; p[6][11] = _WHITE
+    p[7][4] = _WHITE; p[7][5] = _WHITE
+    p[7][10] = _WHITE; p[7][11] = _WHITE
 
 
 def _draw_exclaim(p):
     e = _RED
-    p[1][14] = e; p[2][14] = e; p[3][14] = e
-    p[5][14] = e
+    p[2][14] = e; p[3][14] = e; p[4][14] = e
+    p[6][14] = e
 
 
 def _draw_dots(p, count=3):
     """Draw thinking dots above head."""
     d = _WHITE
-    positions = [(1, 6), (1, 8), (1, 10)]
+    positions = [(2, 6), (2, 8), (2, 10)]
     for i in range(min(count, 3)):
         y, x = positions[i]
         p[y][x] = d
 
 
 def _draw_code_tag(p, stage=1):
-    """Draw </> code tag above head. stage 1: < , 2: <>, 3: </>"""
+    """Draw </> code tag above head (rows 1-3). stage 1: <, 2: </, 3: </>"""
     c = _WHITE
     if stage >= 1:
-        # < at row 1, cols 4-5
-        p[1][5] = c; p[0][4] = c; p[2][4] = c
+        # < at cols 4-5
+        p[1][5] = c
+        p[2][4] = c
+        p[3][5] = c
     if stage >= 2:
-        # > at row 1, cols 10-11
-        p[1][10] = c; p[0][11] = c; p[2][11] = c
+        # / at cols 7-8
+        p[1][8] = c
+        p[2][7] = c; p[2][8] = c
+        p[3][7] = c
     if stage >= 3:
-        # / at row 1, cols 7-8
-        p[0][8] = c; p[2][7] = c
+        # > at cols 10-11
+        p[1][10] = c
+        p[2][11] = c
+        p[3][10] = c
 
 
 def _draw_checkmark(p, y, x, color=None):
@@ -299,37 +305,69 @@ def _draw_checkmark(p, y, x, color=None):
 
 
 def _draw_question_mark(p, y, x):
-    """Draw ? mark at position. 4 rows tall."""
+    """Draw ? mark at position. 5 rows tall, 3 wide."""
     c = _WHITE
-    p[y][x] = c; p[y][x + 1] = c
-    p[y + 1][x + 1] = c
-    p[y + 2][x] = c
-    p[y + 3][x] = c
+    # Top curve
+    p[y][x] = c; p[y][x+1] = c; p[y][x+2] = c
+    p[y+1][x+2] = c
+    # Middle bend
+    p[y+2][x+1] = c
+    # Stem
+    p[y+3][x+1] = c
+    # Dot
+    p[y+5][x+1] = c
 
 
-def _draw_gear(p, rotated=False):
-    """Draw gear below Claude (rows 13-15, cols 6-9). Cross or X shape."""
-    g = (160, 160, 160)  # gray
-    cy, cx = 14, 7  # center
-    p[cy][cx] = g; p[cy][cx + 1] = g
-    if not rotated:
-        # + cross
-        p[cy - 1][cx] = g; p[cy - 1][cx + 1] = g
-        p[cy + 1][cx] = g; p[cy + 1][cx + 1] = g
-        p[cy][cx - 1] = g; p[cy][cx + 2] = g
-    else:
-        # X cross (rotated 45°)
-        p[cy - 1][cx - 1] = g; p[cy - 1][cx + 2] = g
-        p[cy + 1][cx - 1] = g; p[cy + 1][cx + 2] = g
+def _draw_gear(p, phase=0):
+    """Draw gear at top-right, rotating highlight chases clockwise."""
+    g = (170, 170, 170)  # gear body
+    h = (80, 80, 80)     # axle hole
+    bright = (240, 240, 240)  # highlighted tooth
+    base = (110, 110, 110)    # normal tooth
+
+    def px(r, c, color=g):
+        if 0 <= r < 16 and 0 <= c < 16:
+            p[r][c] = color
+
+    # Center body (2-4-4-2 rounded rect)
+    px(1, 11); px(1, 12)
+    px(2, 10); px(2, 11); px(2, 12); px(2, 13)
+    px(3, 10); px(3, 11); px(3, 12); px(3, 13)
+    px(4, 11); px(4, 12)
+
+    # Axle hole (2x2)
+    px(2, 11, h); px(2, 12, h)
+    px(3, 11, h); px(3, 12, h)
+
+    # 8 teeth positions clockwise: N, NE, E, SE, S, SW, W, NW
+    teeth = [
+        [(0, 11), (0, 12)],   # N
+        [(1, 13)],             # NE
+        [(2, 14), (3, 14)],   # E
+        [(4, 13)],             # SE
+        [(5, 11), (5, 12)],   # S
+        [(4, 10)],             # SW
+        [(2, 9), (3, 9)],     # W
+        [(1, 10)],             # NW
+    ]
+
+    # Highlight 2 adjacent teeth per phase (clockwise chase)
+    lit = {phase * 2 % 8, (phase * 2 + 1) % 8}
+
+    for i, positions in enumerate(teeth):
+        color = bright if i in lit else base
+        for r, c in positions:
+            px(r, c, color)
 
 
-def _draw_squares(p, count=1):
-    """Draw small squares on right side for tasklist."""
-    sq = _WHITE
-    positions = [(5, 15), (7, 15), (9, 15)]
-    for i in range(min(count, 3)):
-        y, x = positions[i]
-        p[y][x] = sq
+def _draw_checkbox(p, y, x, checked=False):
+    """Draw a 3x3 checkbox at (y,x). Checked = white box with green center dot."""
+    w = _WHITE
+    p[y][x] = w;     p[y][x+1] = w;     p[y][x+2] = w
+    p[y+1][x] = w;   p[y+1][x+1] = _BG; p[y+1][x+2] = w
+    p[y+2][x] = w;   p[y+2][x+1] = w;   p[y+2][x+2] = w
+    if checked:
+        p[y+1][x+1] = _GREEN
 
 
 def _draw_confetti(p, density=1):
@@ -562,12 +600,12 @@ def kiss():
     f2 = _claude_base()
     _draw_eyes(f2, "one_closed")
     _draw_mouth(f2, "kiss")
-    _draw_flying_heart(f2, 12, 1)
+    _draw_flying_heart(f2, 12, 2)
 
     f3 = _claude_base()
     _draw_eyes(f3, "one_closed")
     _draw_mouth(f3, "kiss")
-    _draw_flying_heart(f3, 13, 0)
+    _draw_flying_heart(f3, 13, 1)
 
     return [f1, f2, f3], [400, 400, 400]
 
@@ -592,8 +630,8 @@ def standby():
     _draw_eyes(f5, "open")
     for r, c in _LEGS:
         f5[r][c] = _BG
-    for r, c in [(11, 4), (11, 6), (11, 9), (11, 11),
-                 (12, 4), (12, 6), (12, 9), (12, 11)]:
+    for r, c in [(12, 4), (12, 6), (12, 9), (12, 11),
+                 (13, 4), (13, 6), (13, 9), (13, 11)]:
         f5[r][c] = _ORANGE
 
     # Legs back to normal
@@ -626,217 +664,404 @@ def thinking():
     return [f1, f2, f3, f4, f5], [600, 400, 400, 400, 400]
 
 
+def _shuffle_legs(p):
+    """Shift legs inward — gives a 'busy' fidget look."""
+    for r, c in _LEGS:
+        p[r][c] = _BG
+    for r, c in [(12, 4), (12, 6), (12, 9), (12, 11),
+                 (13, 4), (13, 6), (13, 9), (13, 11)]:
+        p[r][c] = _ORANGE
+
+
 def working():
-    """Working/coding — </> tag builds up above head."""
-    f1 = _claude_base()
-    _draw_eyes(f1, "open")
-
-    f2 = _claude_base()
-    _draw_eyes(f2, "squint")
-    _draw_code_tag(f2, 1)
-
-    f3 = _claude_base()
-    _draw_eyes(f3, "squint")
-    _draw_code_tag(f3, 2)
-
-    f4 = _claude_base()
-    _draw_eyes(f4, "squint")
-    _draw_code_tag(f4, 3)
-
-    return [f1, f2, f3, f4], [600, 400, 400, 400]
-
-
-def subagent():
-    """Subagent — Claude splits into two."""
-    # F1: normal Claude centered
-    f1 = _claude_base()
-    _draw_eyes(f1, "open")
-
-    # F2: body shifts left 2px + dim outline on right
-    f2 = _empty()
-    c = _ORANGE
-    dim = _DARK_O
-    for row, (s, e) in _BODY.items():
-        for col in range(s - 2, e - 1):
-            if 0 <= col < 16:
-                f2[row][col] = c
-    for r, col in _LEGS:
-        if 0 <= col - 2 < 16:
-            f2[r][col - 2] = c
-    # Eyes on shifted body
-    for dy in (0, 1):
-        for dx in (0, 1):
-            f2[5 + dy][2 + dx] = _BLACK
-            f2[5 + dy][8 + dx] = _BLACK
-    # Dim outline on right side
-    for row, (s, e) in _BODY.items():
-        for col in range(s + 6, e + 7):
-            if 0 <= col < 16:
-                f2[row][col] = dim
-    for r, col in _LEGS:
-        if 0 <= col + 6 < 16:
-            f2[r][col + 6] = dim
-
-    # F3: left Claude + right small full Claude
-    f3 = _empty()
-    # Left Claude (shifted left 2)
-    for row, (s, e) in _BODY.items():
-        for col in range(s - 2, e - 1):
-            if 0 <= col < 16:
-                f3[row][col] = c
-    for r, col in _LEGS:
-        if 0 <= col - 2 < 16:
-            f3[r][col - 2] = c
-    for dy in (0, 1):
-        for dx in (0, 1):
-            f3[5 + dy][2 + dx] = _BLACK
-            f3[5 + dy][8 + dx] = _BLACK
-    # Right Claude (shifted right 6, bright)
-    bright = (255, 170, 70)
-    for row, (s, e) in _BODY.items():
-        for col in range(s + 6, e + 7):
-            if 0 <= col < 16:
-                f3[row][col] = bright
-    for r, col in _LEGS:
-        if 0 <= col + 6 < 16:
-            f3[r][col + 6] = bright
-    # Eyes on right clone
-    for dy in (0, 1):
-        f3[5 + dy][10] = _BLACK
-        f3[5 + dy][14] = _BLACK
-
-    return [f1, f2, f3], [600, 400, 400]
-
-
-def done():
-    """Done/success — squint + smile + green checkmark."""
-    f1 = _claude_base()
-    _draw_eyes(f1, "open")
-
-    f2 = _claude_base()
-    _draw_eyes(f2, "squint")
-    _draw_mouth(f2, "smile")
-
-    f3 = _claude_base()
-    _draw_eyes(f3, "squint")
-    _draw_mouth(f3, "smile")
-    _draw_checkmark(f3, 0, 6, _GREEN)
-
-    return [f1, f2, f3], [400, 400, 500]
-
-
-def notify():
-    """Notify — wide eyes with flashing red exclamation mark."""
-    f1 = _claude_base()
-    _draw_eyes(f1, "open")
-
-    f2 = _claude_base()
-    _draw_eyes(f2, "wide")
-    _draw_exclaim(f2)  # red !
-
-    f3 = _claude_base()
-    _draw_eyes(f3, "wide")
-    # White ! flash
-    p = f3
-    p[1][14] = _WHITE; p[2][14] = _WHITE; p[3][14] = _WHITE
-    p[5][14] = _WHITE
-
-    f4 = _claude_base()
-    _draw_eyes(f4, "wide")
-    _draw_exclaim(f4)  # red ! again
-
-    return [f1, f2, f3, f4], [400, 300, 300, 300]
-
-
-def tooluse():
-    """Tool use — gear spinning below Claude."""
-    f1 = _claude_base()
-    _draw_eyes(f1, "open")
-
-    f2 = _claude_base()
-    _draw_eyes(f2, "squint")
-    _draw_gear(f2, rotated=False)
-
-    f3 = _claude_base()
-    _draw_eyes(f3, "squint")
-    _draw_gear(f3, rotated=True)
-
-    return [f1, f2, f3], [400, 400, 400]
-
-
-def oops():
-    """Oops/error — dizzy eyes + sweat + red tint."""
-    f1 = _claude_base()
-    _draw_eyes(f1, "open")
-
-    f2 = _claude_base()
-    _draw_eyes(f2, "dizzy")
-    _draw_sweat(f2, "left")
-
-    f3 = _claude_base()
-    _tint_red(f3)
-    _draw_eyes(f3, "dizzy")
-    _draw_sweat(f3, "both")
-
-    return [f1, f2, f3], [500, 500, 500]
-
-
-def tasklist():
-    """Tasklist — squares appear on right side."""
+    """Working/coding — </> tag builds up, eyes lookup, legs fidget."""
     f1 = _claude_base()
     _draw_eyes(f1, "open")
 
     f2 = _claude_base()
     _draw_eyes(f2, "lookup")
-    _draw_squares(f2, 1)
+    _draw_code_tag(f2, 1)
+    _shuffle_legs(f2)
 
     f3 = _claude_base()
     _draw_eyes(f3, "lookup")
-    _draw_squares(f3, 2)
+    _draw_code_tag(f3, 2)
 
     f4 = _claude_base()
     _draw_eyes(f4, "lookup")
-    _draw_squares(f4, 3)
+    _draw_code_tag(f4, 3)
+    _shuffle_legs(f4)
 
-    return [f1, f2, f3, f4], [500, 400, 400, 400]
+    return [f1, f2, f3, f4], [600, 400, 400, 400]
 
 
-def taskdone():
-    """Task done — green checkmarks appear."""
+def _draw_mini_claude(p, top, left, color=None):
+    """Draw a small Claude: 4-row body + 2 legs, ~6 wide."""
+    c = color or _ORANGE
+    # Body: 4 rows × 6 cols
+    for dy in range(4):
+        for dx in range(6):
+            x = left + dx
+            if 0 <= top + dy < 16 and 0 <= x < 16:
+                p[top + dy][x] = c
+    # Eyes: 1px each at row 1
+    ey = top + 1
+    if 0 <= ey < 16:
+        if 0 <= left + 1 < 16:
+            p[ey][left + 1] = _BLACK
+        if 0 <= left + 4 < 16:
+            p[ey][left + 4] = _BLACK
+    # Legs: 2 at row 4
+    ly = top + 4
+    if 0 <= ly < 16:
+        if 0 <= left + 1 < 16:
+            p[ly][left + 1] = c
+        if 0 <= left + 4 < 16:
+            p[ly][left + 4] = c
+
+
+def subagent():
+    """Subagent — Claude fades left, two mini clones split up and down."""
+    _FADE = (100, 65, 25)  # very faded orange
+
+    # F1: normal Claude
     f1 = _claude_base()
     _draw_eyes(f1, "open")
-    _draw_checkmark(f1, 1, 12, _GREEN)
 
-    f2 = _claude_base()
-    _draw_eyes(f2, "squint")
-    _draw_checkmark(f2, 1, 12, _GREEN)
-    _draw_checkmark(f2, 1, 7, _GREEN)
+    # F2: Claude shifts left 5 + dims, two dim mini Claudes appear
+    f2 = _empty()
+    for row, (s, e) in _BODY.items():
+        for col in range(s - 5, e - 4):
+            if 0 <= col < 16:
+                f2[row][col] = _DARK_O
+    for r, col in _LEGS:
+        if 0 <= col - 5 < 16:
+            f2[r][col - 5] = _DARK_O
+    # Eyes on shifted Claude (-5): left eye at col 0; right at cols 5-6
+    f2[6][0] = _BLACK; f2[7][0] = _BLACK
+    for dy in (0, 1):
+        for dx in (0, 1):
+            f2[6 + dy][5 + dx] = _BLACK
+    _draw_mini_claude(f2, 3, 10, _DARK_O)
+    _draw_mini_claude(f2, 9, 10, _DARK_O)
 
-    return [f1, f2], [500, 500]
+    # F3: Claude fades off-screen, bright mini Claudes split apart
+    f3 = _empty()
+    for row, (s, e) in _BODY.items():
+        for col in range(s - 9, e - 8):
+            if 0 <= col < 16:
+                f3[row][col] = _FADE
+    for r, col in _LEGS:
+        if 0 <= col - 9 < 16:
+            f3[r][col - 9] = _FADE
+    # Eyes on shifted Claude (-9): left eye off-screen; right at cols 1-2
+    for dy in (0, 1):
+        for dx in (0, 1):
+            f3[6 + dy][1 + dx] = _BLACK
+    _draw_mini_claude(f3, 1, 10)
+    _draw_mini_claude(f3, 11, 10)
+
+    return [f1, f2, f3], [600, 400, 400]
 
 
-def question():
-    """Question/waiting — dots build up then ? appears."""
+def _claude_base_at(y_offset=0, x_offset=0, color=None):
+    """Orange Claude body at a vertical/horizontal offset from default position."""
+    p = _empty()
+    c = color or _ORANGE
+    for row, (s, e) in _BODY.items():
+        r = row + y_offset
+        if 0 <= r < 16:
+            for col in range(s + x_offset, e + 1 + x_offset):
+                if 0 <= col < 16:
+                    p[r][col] = c
+    for r, col in _LEGS:
+        rr = r + y_offset
+        cc = col + x_offset
+        if 0 <= rr < 16 and 0 <= cc < 16:
+            p[rr][cc] = c
+    return p
+
+
+def done():
+    """Done/success — bounce up, land with smile + checkmark + sparkles."""
+    g = _GREEN
+
+    # F1: normal Claude
+    f1 = _claude_base()
+    _draw_eyes(f1, "open")
+
+    # F2: bounce up 1 row, squint
+    f2 = _claude_base_at(-1)
+    for dx in range(3):
+        f2[6][4 + dx] = _BLACK
+        f2[6][10 + dx] = _BLACK
+
+    # F3: land back, squint + smile
+    f3 = _claude_base()
+    _draw_eyes(f3, "squint")
+    _draw_mouth(f3, "smile")
+
+    # F4: checkmark appears on right (overlaps body)
+    #   col: 10 11 12 13 14 15
+    # row2: .  .  .  .  .  X
+    # row3: .  .  .  .  X  .
+    # row4: X  .  .  X  .  .
+    # row5: .  X  X  .  .  .
+    f4 = _claude_base()
+    _draw_eyes(f4, "squint")
+    _draw_mouth(f4, "smile")
+    f4[2][15] = g
+    f4[3][14] = g
+    f4[4][13] = g; f4[4][10] = g
+    f4[5][12] = g; f4[5][11] = g
+
+    # F5: hold + top sparkles
+    f5 = _claude_base()
+    _draw_eyes(f5, "squint")
+    _draw_mouth(f5, "smile")
+    f5[2][15] = g
+    f5[3][14] = g
+    f5[4][13] = g; f5[4][10] = g
+    f5[5][12] = g; f5[5][11] = g
+    # Sparkles — mostly top, a few around body
+    f5[0][2] = _CYAN; f5[0][6] = _RED; f5[0][10] = _PINK; f5[0][14] = _PURPLE
+    f5[1][4] = (255, 150, 0); f5[1][8] = _BLUE; f5[1][12] = _GREEN
+    f5[2][1] = _PINK; f5[2][9] = _CYAN
+    f5[6][0] = _RED; f5[8][15] = _PURPLE; f5[14][2] = _BLUE
+
+    return [f1, f2, f3, f4, f5], [400, 250, 350, 400, 500]
+
+
+def _draw_bell(p, cx, tilt=0):
+    """Draw narrow rounded bell. cx=center col, tilt: -1/0/1."""
+    g = (255, 210, 60)   # gold
+    d = (200, 165, 40)   # dark gold edge
+    w = _WHITE
+    x = cx + tilt
+
+    def px(r, c, color):
+        if 0 <= r < 16 and 0 <= c < 16:
+            p[r][c] = color
+
+    # Handle (row 0)
+    px(0, x, w)
+    # Dome start (row 1): 3px — round top
+    px(1, x - 1, d); px(1, x, g); px(1, x + 1, d)
+    # Body (rows 2-5): 5px same width = round barrel
+    for row in (2, 3, 4, 5):
+        for dx in range(-2, 3):
+            px(row, x + dx, d if abs(dx) == 2 else g)
+    # Rim (row 6): 7px
+    for dx in range(-3, 4):
+        px(6, x + dx, d if abs(dx) == 3 else g)
+    # Clapper swings extra (row 7)
+    px(7, x + tilt, w)
+
+
+def notify():
+    """Notify — bell sways, Claude shouts."""
     f1 = _claude_base()
     _draw_eyes(f1, "open")
 
     f2 = _claude_base()
     _draw_eyes(f2, "open")
-    p = f2
-    p[1][6] = _WHITE  # .
+    _draw_mouth(f2, "open")
+    _draw_bell(f2, 11, tilt=0)
 
     f3 = _claude_base()
-    _draw_eyes(f3, "open")
-    p = f3
-    p[1][6] = _WHITE; p[1][8] = _WHITE  # ..
+    _draw_eyes(f3, "half")
+    _draw_mouth(f3, "open_big")
+    _draw_bell(f3, 11, tilt=-1)
 
     f4 = _claude_base()
     _draw_eyes(f4, "open")
-    p = f4
-    p[1][6] = _WHITE; p[1][8] = _WHITE; p[1][10] = _WHITE  # ...
-    _draw_question_mark(f4, 0, 12)  # ?
+    _draw_mouth(f4, "open")
+    _draw_bell(f4, 11, tilt=1)
 
-    return [f1, f2, f3, f4], [600, 400, 400, 400]
+    f5 = _claude_base()
+    _draw_eyes(f5, "closed")
+    _draw_mouth(f5, "open_big")
+    _draw_bell(f5, 11, tilt=0)
+
+    return [f1, f2, f3, f4, f5], [500, 300, 300, 300, 400]
+
+
+def tooluse():
+    """Tool use — gear with rotating highlight at top-right."""
+    f1 = _claude_base()
+    _draw_eyes(f1, "open")
+    _draw_gear(f1, phase=0)
+
+    f2 = _claude_base()
+    _draw_eyes(f2, "open")
+    _draw_gear(f2, phase=1)
+
+    f3 = _claude_base()
+    _draw_eyes(f3, "squint")
+    _draw_gear(f3, phase=2)
+
+    f4 = _claude_base()
+    _draw_eyes(f4, "open")
+    _draw_gear(f4, phase=3)
+    _shuffle_legs(f4)
+
+    return [f1, f2, f3, f4], [300, 300, 300, 300]
+
+
+def oops():
+    """Oops/error — dizzy eyes + exclamation + body shake."""
+    def _dizzy_at(p, xo):
+        """Draw dizzy X-eyes with horizontal offset."""
+        b = _BLACK
+        p[6][4+xo] = b; p[6][6+xo] = b
+        p[7][5+xo] = b
+        p[8][4+xo] = b; p[8][6+xo] = b
+        p[6][9+xo] = b; p[6][11+xo] = b
+        p[7][10+xo] = b
+        p[8][9+xo] = b; p[8][11+xo] = b
+
+    f1 = _claude_base()
+    _draw_eyes(f1, "open")
+
+    f2 = _claude_base()
+    _draw_eyes(f2, "dizzy")
+    _draw_exclaim(f2)
+
+    # Shake left
+    f3 = _claude_base_at(0, -1)
+    _tint_red(f3)
+    _dizzy_at(f3, -1)
+    _draw_exclaim(f3)
+
+    # Shake right
+    f4 = _claude_base_at(0, 1)
+    _tint_red(f4)
+    _dizzy_at(f4, 1)
+    _draw_exclaim(f4)
+
+    f5 = _claude_base()
+    _draw_eyes(f5, "dizzy")
+    _draw_exclaim(f5)
+
+    return [f1, f2, f3, f4, f5], [500, 400, 200, 200, 400]
+
+
+def tasklist():
+    """Tasklist — 3x3 checkboxes appear on right side, Claude shifts left."""
+    xo = -3  # Claude shifts left by 3
+
+    def _eyes_lookup(p):
+        """Lookup eyes with x offset."""
+        for dy in (0, 1):
+            for dx in (0, 1):
+                p[5 + dy][4 + xo + dx] = _BLACK
+                p[5 + dy][10 + xo + dx] = _BLACK
+
+    def _eyes_open(p):
+        for dy in (0, 1):
+            for dx in (0, 1):
+                p[6 + dy][4 + xo + dx] = _BLACK
+                p[6 + dy][10 + xo + dx] = _BLACK
+
+    f1 = _claude_base_at(0, xo)
+    _eyes_open(f1)
+
+    f2 = _claude_base_at(0, xo)
+    _eyes_lookup(f2)
+    _draw_checkbox(f2, 3, 13)
+
+    f3 = _claude_base_at(0, xo)
+    _eyes_lookup(f3)
+    _draw_checkbox(f3, 3, 13)
+    _draw_checkbox(f3, 7, 13)
+
+    f4 = _claude_base_at(0, xo)
+    _eyes_lookup(f4)
+    _draw_checkbox(f4, 3, 13)
+    _draw_checkbox(f4, 7, 13)
+    _draw_checkbox(f4, 11, 13)
+
+    return [f1, f2, f3, f4], [500, 400, 400, 400]
+
+
+def taskdone():
+    """Task done — second checkbox gets checked + confetti."""
+    xo = -3
+
+    def _eyes_open(p):
+        for dy in (0, 1):
+            for dx in (0, 1):
+                p[6 + dy][4 + xo + dx] = _BLACK
+                p[6 + dy][10 + xo + dx] = _BLACK
+
+    def _eyes_squint(p):
+        for dx in range(3):
+            p[7][4 + xo + dx] = _BLACK
+            p[7][10 + xo + dx] = _BLACK
+
+    # First checked, second unchecked, third unchecked
+    f1 = _claude_base_at(0, xo)
+    _eyes_open(f1)
+    _draw_checkbox(f1, 3, 13, checked=True)
+    _draw_checkbox(f1, 7, 13)
+    _draw_checkbox(f1, 11, 13)
+
+    # Second gets checked
+    f2 = _claude_base_at(0, xo)
+    _eyes_squint(f2)
+    _draw_checkbox(f2, 3, 13, checked=True)
+    _draw_checkbox(f2, 7, 13, checked=True)
+    _draw_checkbox(f2, 11, 13)
+
+    # Confetti
+    f3 = _claude_base_at(0, xo)
+    _eyes_squint(f3)
+    _draw_checkbox(f3, 3, 13, checked=True)
+    _draw_checkbox(f3, 7, 13, checked=True)
+    _draw_checkbox(f3, 11, 13)
+    _draw_confetti(f3, density=2)
+
+    return [f1, f2, f3], [500, 400, 600]
+
+
+def question():
+    """Question/waiting — thinking dots then ? sways, eyes look around."""
+    def _eyes_left(p):
+        for dy in (0, 1):
+            p[6+dy][4] = _BLACK; p[6+dy][5] = _BLACK
+            p[6+dy][10] = _BLACK; p[6+dy][11] = _BLACK
+
+    def _eyes_right(p):
+        for dy in (0, 1):
+            p[6+dy][5] = _BLACK; p[6+dy][6] = _BLACK
+            p[6+dy][11] = _BLACK; p[6+dy][12] = _BLACK
+
+    # Dots build up
+    f1 = _claude_base()
+    _draw_eyes(f1, "open")
+
+    f2 = _claude_base()
+    _draw_eyes(f2, "lookup")
+    f2[2][7] = _WHITE
+
+    f3 = _claude_base()
+    _draw_eyes(f3, "lookup")
+    f3[2][5] = _WHITE; f3[2][7] = _WHITE; f3[2][9] = _WHITE
+
+    # ? appears, sways left/right
+    f4 = _claude_base()
+    _draw_eyes(f4, "open")
+    _draw_question_mark(f4, 0, 12)
+
+    f5 = _claude_base()
+    _draw_eyes(f5, "open")
+    _draw_question_mark(f5, 0, 11)
+
+    f6 = _claude_base()
+    _draw_eyes(f6, "open")
+    _draw_question_mark(f6, 0, 12)
+
+    return [f1, f2, f3, f4, f5, f6], [500, 350, 400, 400, 400, 400]
 
 
 def haiku():
@@ -844,44 +1069,69 @@ def haiku():
     _LAV = (180, 140, 255)   # lavender
     _SPK = (255, 150, 180)   # soft pink
     _SCY = (100, 220, 240)   # soft cyan
+    yo = 2  # body shifts down to make room
 
     def _line(p, row, count, color):
-        """Draw centered dots: count pixels on row."""
         start = (16 - count) // 2
         for i in range(count):
             p[row][start + i] = color
 
-    # F1: contemplation
-    f1 = _claude_base()
-    _draw_eyes(f1, "open")
+    def _eyes(p, style):
+        if style == "open":
+            for dy in (0, 1):
+                for dx in (0, 1):
+                    p[6+yo+dy][4+dx] = _BLACK
+                    p[6+yo+dy][10+dx] = _BLACK
+        elif style == "lookup":
+            for dy in (0, 1):
+                for dx in (0, 1):
+                    p[5+yo+dy][4+dx] = _BLACK
+                    p[5+yo+dy][10+dx] = _BLACK
+        elif style == "squint":
+            for dx in range(3):
+                p[7+yo][4+dx] = _BLACK
+                p[7+yo][10+dx] = _BLACK
 
-    # F2: eyes up + first line (5)
-    f2 = _claude_base()
-    _draw_eyes(f2, "lookup")
+    def _legs_shuffle(p):
+        for r, c in _LEGS:
+            p[r+yo][c] = _BG
+        for r, c in [(12, 4), (12, 6), (12, 9), (12, 11),
+                     (13, 4), (13, 6), (13, 9), (13, 11)]:
+            p[r+yo][c] = _ORANGE
+
+    # F1: contemplation
+    f1 = _claude_base_at(yo)
+    _eyes(f1, "open")
+
+    # F2: first line (5)
+    f2 = _claude_base_at(yo)
+    _eyes(f2, "lookup")
     _line(f2, 0, 5, _LAV)
+    _legs_shuffle(f2)
 
     # F3: + second line (7)
-    f3 = _claude_base()
-    _draw_eyes(f3, "lookup")
+    f3 = _claude_base_at(yo)
+    _eyes(f3, "lookup")
     _line(f3, 0, 5, _LAV)
-    _line(f3, 1, 7, _SPK)
+    _line(f3, 2, 7, _SPK)
 
-    # F4: + third line (5) — poem complete
-    f4 = _claude_base()
-    _draw_eyes(f4, "lookup")
+    # F4: + third line (5)
+    f4 = _claude_base_at(yo)
+    _eyes(f4, "lookup")
     _line(f4, 0, 5, _LAV)
-    _line(f4, 1, 7, _SPK)
-    _line(f4, 2, 5, _SCY)
+    _line(f4, 2, 7, _SPK)
+    _line(f4, 4, 5, _SCY)
+    _legs_shuffle(f4)
 
-    # F5: satisfied — squint, all lines shimmer brighter
+    # F5: satisfied — shimmer
     _LAV2 = (210, 180, 255)
     _SPK2 = (255, 180, 210)
     _SCY2 = (140, 240, 255)
-    f5 = _claude_base()
-    _draw_eyes(f5, "squint")
+    f5 = _claude_base_at(yo)
+    _eyes(f5, "squint")
     _line(f5, 0, 5, _LAV2)
-    _line(f5, 1, 7, _SPK2)
-    _line(f5, 2, 5, _SCY2)
+    _line(f5, 2, 7, _SPK2)
+    _line(f5, 4, 5, _SCY2)
 
     return [f1, f2, f3, f4, f5], [600, 500, 500, 500, 600]
 

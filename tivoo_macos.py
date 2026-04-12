@@ -707,11 +707,13 @@ def _load_all_presets(load_files=None):
 @click.option("--duration", default=12, type=int, help="Display seconds (0=forever)")
 @click.option("--loop", default=5, type=int, help="Loop count for animations (0=infinite)")
 @click.option("--load", "load_files", multiple=True, help="Load preset set: luna, claude, or file path")
-def preset(name, duration, loop, load_files):
+@click.option("--restore", "restore_cmd", default=None, help="Tivoo command to run after loops finish (e.g. 'preset standby --loop 0 --load claude')")
+def preset(name, duration, loop, load_files, restore_cmd):
     """Send preset pixel art pattern.
 
     Run without arguments to list all presets.
     Use --load to add custom presets from .py files.
+    Use --restore to auto-run another command after loops finish.
     """
     presets, emotions, hidden = _load_all_presets(load_files or None)
     all_presets = {**presets, **emotions}
@@ -729,7 +731,7 @@ def preset(name, duration, loop, load_files):
 
     if name not in all_presets:
         print(f"Unknown preset: {name}")
-        print(f"Available: {', '.join(all_presets.keys())}")
+        print(f"Available: {', '.join(k for k in all_presets if k not in hidden)}")
         return
 
     desc, func = all_presets[name]
@@ -738,7 +740,22 @@ def preset(name, duration, loop, load_files):
 
     print(f"  {len(frames)} frame(s)")
     duration_ms = _send_animation(frames, delays[0], delays)
-    _wait_and_restore(duration_ms * loop / 1000 if loop > 0 else 0)
+
+    if restore_cmd and loop > 0:
+        import shlex
+        total_wait = duration_ms * loop / 1000
+        restore_args = shlex.split(restore_cmd)
+        pid = os.fork()
+        if pid == 0:
+            os.setsid()
+            time.sleep(total_wait)
+            subprocess.run([sys.executable, __file__] + restore_args,
+                           stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            os._exit(0)
+        else:
+            print(f"  Will run '{restore_cmd}' in {total_wait:.1f}s (background)")
+    else:
+        _wait_and_restore(duration_ms * loop / 1000 if loop > 0 else 0)
 
 
 def _parse_json_response(json_str):

@@ -563,6 +563,264 @@ def thinking():
     ], [600, 400, 400, 400, 400]
 
 
+# --- Workflow Helpers ---
+
+
+def _shift_frame(frame, xo=0, yo=0):
+    """Shift all pixels in a frame by offset."""
+    shifted = _blank()
+    for r in range(16):
+        for c in range(16):
+            nr, nc = r + yo, c + xo
+            if 0 <= nr < 16 and 0 <= nc < 16:
+                shifted[nr][nc] = frame[r][c]
+    return shifted
+
+
+def _dim_frame(frame, factor=0.7):
+    """Dim all non-background pixels."""
+    dimmed = _blank()
+    for r in range(16):
+        for c in range(16):
+            if frame[r][c] != _BG:
+                cr, cg, cb = frame[r][c]
+                dimmed[r][c] = (int(cr * factor), int(cg * factor), int(cb * factor))
+    return dimmed
+
+
+def _mini_luna(p, cx, cy):
+    """Draw mini Luna head: purple hair dome + skin face + violet eyes."""
+    ix, iy = int(cx), int(cy)
+    def px(r, c, color):
+        if 0 <= r < 16 and 0 <= c < 16:
+            p[r][c] = color
+    # Hair dome
+    for dx in (-1, 0, 1):
+        px(iy - 2, ix + dx, _H)
+    for dx in (-2, -1, 0, 1, 2):
+        px(iy - 1, ix + dx, _H)
+    # Face with hair sides
+    px(iy, ix - 2, _H); px(iy, ix + 2, _H)
+    px(iy, ix, _SK)
+    # Chin
+    px(iy + 1, ix - 1, _SK); px(iy + 1, ix, _SK); px(iy + 1, ix + 1, _SK)
+    # Violet eyes
+    px(iy, ix - 1, _EV); px(iy, ix + 1, _EV)
+
+
+def _draw_magic_star(p, phase=0):
+    """Draw rotating magic star at top-right corner."""
+    colors = [_SP, _MG, _ST, _TJ]
+    c = colors[phase % 4]
+    c2 = colors[(phase + 1) % 4]
+    p[1][14] = c
+    if phase % 2 == 0:
+        p[0][14] = c2; p[2][14] = c2; p[1][13] = c2; p[1][15] = c2
+    else:
+        p[0][13] = c2; p[0][15] = c2; p[2][13] = c2; p[2][15] = c2
+
+
+def _draw_checkbox_luna(p, y, x, checked=False):
+    """3x3 checkbox with sparkle outline."""
+    w = _SP
+    p[y][x] = w; p[y][x+1] = w; p[y][x+2] = w
+    p[y+1][x] = w; p[y+1][x+1] = _BG; p[y+1][x+2] = w
+    p[y+2][x] = w; p[y+2][x+1] = w; p[y+2][x+2] = w
+    if checked:
+        p[y+1][x+1] = _MG
+
+
+def _draw_question_mark_luna(p, y, x):
+    """Question mark in sparkle color, 3 wide 6 tall."""
+    c = _SP
+    p[y][x] = c; p[y][x+1] = c; p[y][x+2] = c
+    p[y+1][x+2] = c
+    p[y+2][x+1] = c
+    p[y+3][x+1] = c
+    p[y+5][x+1] = c
+
+
+# --- Workflow Emotions ---
+
+
+def working():
+    """Working Luna — focused, mumbling, sparkle hints."""
+    f1 = _frame(eyes="focused", mouth="determined")
+
+    f2 = _frame(eyes="focused", mouth="open")
+    f2[0][1] = _SP
+
+    f3 = _frame(eyes="squint", mouth="flat")
+    f3[0][14] = _MG
+
+    f4 = _frame(eyes="focused", mouth="open")
+    f4[0][1] = _MG; f4[0][14] = _SP
+
+    return [f1, f2, f3, f4], [350, 350, 350, 350]
+
+
+def subagent():
+    """Subagent — Luna dims and splits into mini clones."""
+    f1 = _frame(eyes="open", mouth="smile")
+
+    f2 = _shift_frame(_dim_frame(_frame(eyes="open", mouth="shy"), 0.7), xo=-3)
+    _mini_luna(f2, 12, 5)
+    _mini_luna(f2, 12, 11)
+
+    f3 = _shift_frame(_dim_frame(_frame(eyes="open", mouth="shy"), 0.4), xo=-5)
+    _mini_luna(f3, 11, 3)
+    _mini_luna(f3, 11, 12)
+
+    return [f1, f2, f3], [600, 400, 400]
+
+
+def done():
+    """Done — excited Luna with sparkle burst."""
+    f1 = _frame(eyes="open", mouth="smile")
+    f2 = _frame(eyes="happy", mouth="grin")
+    f3 = _frame(eyes="happy", mouth="grin", sparkles=1)
+    f4 = _frame(eyes="happy", mouth="grin", sparkles=2, confetti=2)
+    return [f1, f2, f3, f4], [400, 300, 400, 500]
+
+
+def notify():
+    """Notify — magic star flashes at top-right."""
+    f1 = _frame(eyes="open", mouth="shy")
+
+    f2 = _frame(eyes="open", mouth="shy")
+    f2[0][14] = _MG
+
+    f3 = _frame(eyes="lookup", mouth="smile")
+    f3[0][14] = _SP; f3[0][13] = _MG; f3[0][15] = _MG
+    f3[1][14] = _ST
+
+    f4 = _frame(eyes="open", mouth="smile")
+    f4[0][14] = _WHITE; f4[0][13] = _SP; f4[0][15] = _SP
+    f4[1][14] = _SP; f4[1][13] = _MG; f4[1][15] = _MG
+
+    return [f1, f2, f3, f4], [400, 300, 400, 400]
+
+
+def tooluse():
+    """Tooluse — magic star rotates beside Luna."""
+    f1 = _frame(eyes="open", mouth="shy")
+    _draw_magic_star(f1, phase=0)
+
+    f2 = _frame(eyes="open", mouth="shy")
+    _draw_magic_star(f2, phase=1)
+
+    f3 = _frame(eyes="squint", mouth="shy")
+    _draw_magic_star(f3, phase=2)
+
+    f4 = _frame(eyes="open", mouth="shy")
+    _draw_magic_star(f4, phase=3)
+
+    return [f1, f2, f3, f4], [300, 300, 300, 300]
+
+
+def oops():
+    """Oops — dizzy eyes, exclaim, face shakes."""
+    f1 = _frame(eyes="open", mouth="shy")
+    f2 = _frame(eyes="dizzy", mouth="open", exclaim=True)
+
+    f3 = _shift_frame(_frame(eyes="dizzy", mouth="open", tint="red"), xo=-1)
+    f3[2][15] = _RED; f3[3][15] = _RED; f3[4][15] = _RED; f3[6][15] = _RED
+
+    f4 = _shift_frame(_frame(eyes="dizzy", mouth="open", tint="red"), xo=1)
+    f4[2][15] = _RED; f4[3][15] = _RED; f4[4][15] = _RED; f4[6][15] = _RED
+
+    f5 = _frame(eyes="dizzy", mouth="open", exclaim=True)
+    return [f1, f2, f3, f4, f5], [500, 400, 200, 200, 400]
+
+
+def tasklist():
+    """Tasklist — Luna shifts left, checkboxes appear."""
+    xo = -3
+    f1 = _frame(eyes="open", mouth="shy")
+
+    f2 = _shift_frame(_frame(eyes="lookup", mouth="shy"), xo=xo)
+    _draw_checkbox_luna(f2, 3, 13)
+
+    f3 = _shift_frame(_frame(eyes="lookup", mouth="shy"), xo=xo)
+    _draw_checkbox_luna(f3, 3, 13)
+    _draw_checkbox_luna(f3, 7, 13)
+
+    f4 = _shift_frame(_frame(eyes="lookup", mouth="shy"), xo=xo)
+    _draw_checkbox_luna(f4, 3, 13)
+    _draw_checkbox_luna(f4, 7, 13)
+    _draw_checkbox_luna(f4, 11, 13)
+
+    return [f1, f2, f3, f4], [500, 400, 400, 400]
+
+
+def taskdone():
+    """Taskdone — checkboxes check off + confetti."""
+    xo = -3
+
+    f1 = _shift_frame(_frame(eyes="open", mouth="smile"), xo=xo)
+    _draw_checkbox_luna(f1, 3, 13, checked=True)
+    _draw_checkbox_luna(f1, 7, 13)
+    _draw_checkbox_luna(f1, 11, 13)
+
+    f2 = _shift_frame(_frame(eyes="squint", mouth="smile"), xo=xo)
+    _draw_checkbox_luna(f2, 3, 13, checked=True)
+    _draw_checkbox_luna(f2, 7, 13, checked=True)
+    _draw_checkbox_luna(f2, 11, 13)
+
+    f3 = _shift_frame(_frame(eyes="happy", mouth="grin"), xo=xo)
+    _draw_checkbox_luna(f3, 3, 13, checked=True)
+    _draw_checkbox_luna(f3, 7, 13, checked=True)
+    _draw_checkbox_luna(f3, 11, 13)
+    _draw_confetti(f3, density=2)
+
+    return [f1, f2, f3], [400, 400, 500]
+
+
+def question():
+    """Question — dots appear, then question mark sways."""
+    f1 = _frame(eyes="open", mouth="shy")
+
+    f2 = _frame(eyes="lookup", mouth="shy", dots=1)
+
+    f3 = _frame(eyes="lookup", mouth="shy", dots=2)
+
+    f4 = _frame(eyes="lookup", mouth="shy", dots=3)
+
+    f5 = _frame(eyes="open", mouth="shy")
+    _draw_question_mark_luna(f5, 0, 13)
+
+    f6 = _frame(eyes="open", mouth="shy")
+    _draw_question_mark_luna(f6, 0, 12)
+
+    f7 = _frame(eyes="open", mouth="shy")
+    _draw_question_mark_luna(f7, 0, 13)
+
+    return [f1, f2, f3, f4, f5, f6, f7], [500, 350, 350, 400, 400, 400, 400]
+
+
+def magic():
+    """Magic — full magical girl spell cast!"""
+    w = (200, 170, 130)  # wand shaft
+
+    f1 = _frame(eyes="closed", mouth="determined")
+
+    f2 = _frame(eyes="wide", mouth="shy")
+    f2[3][15] = w; f2[4][15] = w; f2[5][15] = w
+    f2[2][15] = _SP
+
+    f3 = _frame(eyes="one_closed", mouth="smile")
+    f3[3][15] = w; f3[4][15] = w; f3[5][15] = w
+    f3[2][15] = _WHITE; f3[1][15] = _MG; f3[1][14] = _SP
+
+    f4 = _frame(eyes="happy", mouth="grin", sparkles=2)
+    f4[0][14] = _MG; f4[0][15] = _SP; f4[1][13] = _ST
+    f4[2][14] = _WHITE; f4[2][15] = _MG
+
+    f5 = _frame(eyes="hearts", mouth="grin", sparkles=2, confetti=2)
+
+    return [f1, f2, f3, f4, f5], [400, 400, 350, 350, 600]
+
+
 # --- Registry ---
 # EMOTIONS is used by --load to override default emotion presets
 
@@ -582,4 +840,16 @@ EMOTIONS = {
     "kiss": ("Flying kiss Luna", kiss_with_heart),
     "standby": ("Standby Luna", standby),
     "thinking": ("Thinking Luna", thinking),
+    "working": ("Working Luna", working),
+    "subagent": ("Subagent Luna", subagent),
+    "done": ("Done Luna", done),
+    "notify": ("Notify Luna", notify),
+    "tooluse": ("Tooluse Luna", tooluse),
+    "oops": ("Oops Luna", oops),
+    "tasklist": ("Tasklist Luna", tasklist),
+    "taskdone": ("Taskdone Luna", taskdone),
+    "question": ("Question Luna", question),
+    "magic": ("Magic Luna", magic),
 }
+
+HIDDEN_EMOTIONS = {"magic"}

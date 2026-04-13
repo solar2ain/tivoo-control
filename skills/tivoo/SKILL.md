@@ -37,7 +37,8 @@ Default: `11:75:58:8C:5B:0C`. No recompilation needed — the MAC is passed via 
 ```bash
 pip3 install click          # CLI framework (required)
 pip3 install Pillow         # Image/animation/text (recommended)
-pip3 install anthropic      # AI pixel art (optional)
+pip3 install anthropic      # AI pixel art - Anthropic API (optional)
+pip3 install openai         # AI pixel art - OpenAI API (optional)
 ```
 
 ### 4. macOS Bluetooth Permissions
@@ -62,12 +63,12 @@ python3 scripts/tivoo_macos.py <command>
 | `clock [style] [opts]` | `clock 1` | Clock mode (style 0-6) |
 | `light <color>` | `light #FF6600` | Light effect color |
 | `off` / `on` | `off` | Turn screen off/on |
-| `image <path>` | `image cat.png` | Send image (--duration 12) |
-| `text <text>` | `text Hello` | Scrolling text (--loop 3, --font, --size) |
-| `anim <dir\|gif>` | `anim frames/` | Send animation (--loop 3) |
+| `image <path>` | `image cat.png` | Send image (--duration 12, --resample) |
+| `text <text>` | `text Hello` | Scrolling text (--loop 3, --font, --font-file, --size) |
+| `anim <dir\|gif>` | `anim frames/` | Send animation (--loop 3, --delay) |
 | `preset <name>` | `preset heart` | Animated preset (--duration 12, --load) |
-| `ai <prompt>` | `ai "a cat"` | AI-generated pixel art |
-| `ai-anim <prompt>` | `ai-anim "fire"` | AI-generated animation |
+| `ai <prompt>` | `ai "a cat"` | AI-generated pixel art (--provider, --no-thinking) |
+| `ai-anim <prompt>` | `ai-anim "fire"` | AI-generated animation (--frames, --delay, --first-frame, --provider, --no-thinking) |
 | `raw <hex...>` | `raw 74 64` | Raw hex command |
 | `prepare <sub>` | `prepare preset heart` | Stage animation frames |
 | `send [file]` | `send` | Send staged frames (--loop 3) |
@@ -82,7 +83,7 @@ Use `--duration 0` or `--loop 0` for permanent display (no auto-restore).
 
 ### Presets
 
-42 animated presets (run `preset` without args to list all):
+33 animated presets (run `preset` without args to list all):
 
 - **Emoji**: heart, smiley, star, thumbs-up
 - **Weather**: sun, moon, cloud, rain, snow, lightning
@@ -91,17 +92,18 @@ Use `--duration 0` or `--loop 0` for permanent display (no auto-restore).
 - **Symbols**: check, cross, music, ghost, skull, gradient, rainbow
 - **Workflow**: working, thinking, error, success, coding, loading, building, deploying, testing, searching, downloading, uploading, debugging, saving, syncing, done
 
-13 built-in emotion presets: happy, sad, angry, love, cool, cry, laugh, sleepy, shock, wink, sick, party, kiss
+24 built-in emotion presets: happy, sad, angry, love, cool, cry, laugh, sleepy, shock, wink, sick, party, kiss, standby, thinking, working, subagent, done, notify, tooluse, oops, tasklist, taskdone, question
 
-#### Custom Presets (--load)
+#### Character Presets (--load)
 
-Load external preset files to override or add presets:
+Load character-specific emotion sets:
 
 ```bash
-python3 scripts/tivoo_macos.py preset happy --load emotion_presets_luna.py
+python3 scripts/tivoo_macos.py preset happy --load claude   # Claude orange logo emotions
+python3 scripts/tivoo_macos.py preset happy --load luna     # Luna magic girl emotions
 ```
 
-External files export `PRESETS` and/or `EMOTIONS` dicts. Same-name entries override built-in ones.
+External files export `PRESETS`, `EMOTIONS`, and/or `HIDDEN_EMOTIONS` dicts. Same-name entries override built-in ones. Shorthand names: `claude`, `luna`.
 
 ### Clock Options
 
@@ -114,11 +116,12 @@ Styles: 0=fullscreen, 1=rainbow, 2=boxed, 3=square, 4=fullscreen-inv, 5=round, 6
 ### Text Options
 
 ```
-text TEXT [--color white] [--bg black] [--speed 100] [--step 2] [--size 12] [--font unifont] [--loop 3]
+text TEXT [--color white] [--bg black] [--speed 100] [--step 2] [--size 12] [--font unifont] [--font-file path] [--loop 3]
 ```
 
 - `--size`: Font size 8-16 (uses Unifont pixel font by default)
 - `--font`: Font name (unifont, stheiti, hiragino, gothic, arial)
+- `--font-file`: Custom font file path (overrides --font)
 - `--speed`: Scroll speed in ms per step
 - `--step`: Pixels to scroll per step (1-8)
 - `--loop`: Loop count, 0 = infinite

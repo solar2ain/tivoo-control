@@ -31,9 +31,9 @@ Uses Claude-specific emotion presets (`--load claude`) by default for fine-grain
 
 ## Event → Claude Emotion Mapping
 
-### Default Enabled (6 events)
+### Default Enabled (7 events)
 
-These fire when Claude stops or needs user action:
+These fire when Claude stops, needs user action, or starts working:
 
 | Event | Claude Emotion | Loop | TTS |
 |-------|---------------|------|-----|
@@ -43,14 +43,14 @@ These fire when Claude stops or needs user action:
 | **PermissionRequest** | `question` | 5 | — |
 | **Elicitation** | `question` | 5 | — |
 | **TeammateIdle** | `standby` | 5 | — |
+| **UserPromptSubmit** | `working` | 2 | — |
 
-### Opt-in Events (7 events)
+### Opt-in Events (6 events)
 
 Enable with `--all` or `--events`:
 
 | Event | Claude Emotion | Loop |
 |-------|---------------|------|
-| UserPromptSubmit | `working` | 2 |
 | TaskCreated | `tasklist` | 2 |
 | TaskCompleted | `taskdone` | 2 |
 | SubagentStart | `subagent` | 2 |

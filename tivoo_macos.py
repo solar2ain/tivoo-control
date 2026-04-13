@@ -79,6 +79,7 @@ COLORS = {
 
 
 LOG_FILE = os.path.join(SCRIPT_DIR, "tivoo.log")
+AI_ART_DIR = os.path.join(SCRIPT_DIR, "ai_art")
 
 FONTS = {
     "arial": ["/Library/Fonts/Arial Unicode.ttf"],
@@ -272,12 +273,20 @@ def build_image_frame(pixels_2d, timecode=0):
     return frame
 
 
-def image_file_to_pixels(path):
+RESAMPLE_METHODS = ["nearest", "lanczos", "bilinear"]
+
+
+def _get_resample(name):
+    from PIL import Image
+    return {"nearest": Image.NEAREST, "lanczos": Image.LANCZOS, "bilinear": Image.BILINEAR}.get(name, Image.LANCZOS)
+
+
+def image_file_to_pixels(path, resample="lanczos"):
     """Load image file and resize to 16x16, return pixel 2D array."""
     from PIL import Image
 
     img = Image.open(path).convert("RGBA")
-    img = img.resize((SCREEN_SIZE, SCREEN_SIZE), Image.LANCZOS)
+    img = img.resize((SCREEN_SIZE, SCREEN_SIZE), _get_resample(resample))
 
     pixels = []
     for y in range(SCREEN_SIZE):
@@ -432,10 +441,11 @@ def on():
 @cli.command()
 @click.argument("path", type=click.Path(exists=True))
 @click.option("--duration", default=12, type=int, help="Display seconds (0=forever)")
-def image(path, duration):
+@click.option("--resample", default="lanczos", type=click.Choice(RESAMPLE_METHODS, case_sensitive=False), help="Resize algorithm")
+def image(path, duration, resample):
     """Send image file to Tivoo (PNG/JPG/GIF)."""
     print(f"Sending image: {path}")
-    pixels = image_file_to_pixels(path)
+    pixels = image_file_to_pixels(path, resample=resample)
     frame = build_image_frame(pixels, timecode=0)
     payload = [0x44, 0x00, 0x0A, 0x0A, 0x04] + frame
     if send_cmd(*payload):
@@ -453,11 +463,12 @@ def image(path, duration):
 @click.option("--step", default=2, type=click.IntRange(1, 8), help="Pixels per scroll step")
 @click.option("--size", default=None, type=click.IntRange(8, 16), help="Font size (auto: 9=EN, 12=CJK)")
 @click.option("--font", default=None, type=click.Choice(FONT_NAMES, case_sensitive=False), help="Font name")
+@click.option("--font-file", default=None, type=click.Path(exists=True), help="Custom font file path")
 @click.option("--loop", default=5, type=int, help="Loop count (0=infinite)")
-def text(text, color, bg, speed, step, size, font, loop):
+def text(text, color, bg, speed, step, size, font, font_file, loop):
     """Display scrolling text."""
     print(f"Generating text animation: \"{text}\"")
-    frames, delays = _gen_text_frames(text, color, bg, speed, step, font_size=size, font_name=font)
+    frames, delays = _gen_text_frames(text, color, bg, speed, step, font_size=size, font_name=font, font_file=font_file)
     print(f"  {len(frames)} frames, step {step}px, speed {speed}ms/step")
     duration_ms = _send_animation(frames, speed, delays)
     _wait_and_restore(duration_ms * loop / 1000 if loop > 0 else 0)
@@ -467,11 +478,13 @@ def text(text, color, bg, speed, step, size, font, loop):
 
 @cli.command()
 @click.argument("path", type=click.Path(exists=True))
-@click.option("-d", "--delay", default=100, type=int, help="Frame delay (ms)")
+@click.option("-d", "--delay", default=200, type=int, help="Frame delay (ms)")
 @click.option("--loop", default=5, type=int, help="Loop count (0=infinite)")
-def anim(path, delay, loop):
+@click.option("--resample", default="lanczos", type=click.Choice(RESAMPLE_METHODS, case_sensitive=False), help="Resize algorithm")
+def anim(path, delay, loop, resample):
     """Send animation (image directory or GIF file)."""
     from PIL import Image
+    method = _get_resample(resample)
 
     frames = []
     per_frame_delays = []
@@ -488,7 +501,7 @@ def anim(path, delay, loop):
         print(f"Loading animation frames ({len(files)} images)")
         for f in files:
             img = Image.open(os.path.join(path, f)).convert("RGBA")
-            img = img.resize((SCREEN_SIZE, SCREEN_SIZE), Image.LANCZOS)
+            img = img.resize((SCREEN_SIZE, SCREEN_SIZE), method)
             frame = []
             for y in range(SCREEN_SIZE):
                 row = []
@@ -507,7 +520,7 @@ def anim(path, delay, loop):
         for i in range(n_frames):
             gif.seek(i)
             img = gif.convert("RGBA").resize(
-                (SCREEN_SIZE, SCREEN_SIZE), Image.LANCZOS
+                (SCREEN_SIZE, SCREEN_SIZE), method
             )
             frame = []
             for y in range(SCREEN_SIZE):
@@ -517,7 +530,7 @@ def anim(path, delay, loop):
                     row.append((r, g, b) if a >= 32 else (0, 0, 0))
                 frame.append(row)
             frames.append(frame)
-            per_frame_delays.append(gif.info.get('duration', delay))
+            per_frame_delays.append(delay)
     else:
         print(f"Unsupported path: {path}")
         return
@@ -568,32 +581,64 @@ def _send_animation(frames, default_delay_ms, per_frame_delays=None):
 
 # --- AI Pixel Art ---
 
+def _auto_save_path(prompt, ext="png"):
+    """Generate auto save path: ai_art/<timestamp>_<prompt>.<ext>"""
+    from datetime import datetime
+    os.makedirs(AI_ART_DIR, exist_ok=True)
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    # Sanitize prompt for filename: take first 30 chars, replace non-alnum
+    safe = "".join(c if c.isalnum() or c in "-_ " else "" for c in prompt[:30]).strip().replace(" ", "_")
+    return os.path.join(AI_ART_DIR, f"{ts}_{safe}.{ext}")
+
+
+_AI_SYSTEM_IMAGE = (
+    "You are a pixel art artist. Generate a 16x16 pixel image based on the user's description. "
+    "Use a palette-indexed format to keep output compact. "
+    "Output ONLY a JSON object with:\n"
+    '  "palette": {"0": [R,G,B], "1": [R,G,B], ...} — up to 36 colors (keys: 0-9, a-z)\n'
+    '  "pixels": ["0123456789abcdef", ...] — 16 strings of 16 chars each, referencing palette keys\n'
+    "Use \"0\" for black background [0,0,0]. Use vivid colors. Keep art clean and recognizable."
+)
+
+_AI_SYSTEM_ANIM = (
+    "You are a pixel animation artist. Generate a {n}-frame 16x16 pixel animation. "
+    "Use a palette-indexed format to keep output compact. "
+    "Output ONLY a JSON object with:\n"
+    '  "palette": {{"0": [R,G,B], "1": [R,G,B], ...}} — up to 36 colors (keys: 0-9, a-z)\n'
+    '  "frames": [["0123...", ...16 rows...], ...{n} frames...] — each frame is 16 strings of 16 chars\n'
+    "Use \"0\" for black background [0,0,0]. Use vivid colors. "
+    "Animation should be smooth with small changes between frames."
+)
+
+
 @cli.command()
 @click.argument("prompt")
-def ai(prompt):
+@click.option("--save", default=None, type=click.Path(), help="Save pixel art to PNG file (default: auto)")
+@click.option("--provider", default=None, type=click.Choice(["claude-cli", "anthropic", "openai"], case_sensitive=False), help="AI provider")
+@click.option("--no-thinking", is_flag=True, default=False, help="Disable extended thinking")
+def ai(prompt, save, provider, no_thinking):
     """AI-generate 16x16 pixel art and send."""
     print(f"AI pixel art: \"{prompt}\"")
-    print("  Requesting AI...")
 
-    system_msg = (
-        "You are a pixel art artist. Based on the user's description, generate a 16x16 pixel image. "
-        "Output a JSON array with 16 rows, each containing 16 [R,G,B] color values. "
-        "Output ONLY JSON, nothing else. "
-        "Color values 0-255. Use black [0,0,0] for background. "
-        "Keep the art clean and use vivid colors."
-    )
+    system_msg = _AI_SYSTEM_IMAGE
 
-    json_str = _call_ai(system_msg, prompt)
+    print(f"  System: {system_msg[:80]}...")
+    print(f"  Requesting AI...")
+
+    json_str = _call_ai(system_msg, prompt, provider=provider, max_tokens=16384, thinking=not no_thinking)
     if not json_str:
         print("  AI generation failed")
         return
 
-    pixels = _parse_pixel_json(json_str)
+    pixels = _parse_palette_image(json_str)
     if not pixels:
+        print(f"  Raw response (first 200 chars): {json_str[:200]}")
         return
 
     print("  Pixel art ready, sending to Tivoo...")
     _preview_ascii(pixels)
+    save_path = save or _auto_save_path(prompt, "png")
+    _save_pixels_png(pixels, save_path)
     frame = build_image_frame(pixels, timecode=0)
     payload = [0x44, 0x00, 0x0A, 0x0A, 0x04] + frame
     send_cmd(*payload)
@@ -602,41 +647,60 @@ def ai(prompt):
 
 @cli.command("ai-anim")
 @click.argument("prompt")
-@click.option("-n", "--frames", default=10, type=int, help="Number of frames")
-@click.option("-d", "--delay", default=100, type=int, help="Frame delay (ms)")
-def ai_anim(prompt, frames, delay):
+@click.option("-n", "--frames", default=4, type=int, help="Number of frames")
+@click.option("-d", "--delay", default=200, type=int, help="Frame delay (ms)")
+@click.option("--first-frame", default=None, type=click.Path(exists=True), help="Image file for the first frame")
+@click.option("--save", default=None, type=click.Path(), help="Save animation as GIF file (default: auto)")
+@click.option("--provider", default=None, type=click.Choice(["claude-cli", "anthropic", "openai"], case_sensitive=False), help="AI provider")
+@click.option("--no-thinking", is_flag=True, default=False, help="Disable extended thinking")
+def ai_anim(prompt, frames, delay, first_frame, save, provider, no_thinking):
     """AI-generate pixel animation and send."""
-    print(f"AI pixel animation: \"{prompt}\" ({frames} frames)")
+    first_frame_pixels = None
+    if first_frame:
+        first_frame_pixels = image_file_to_pixels(first_frame)
+        gen_frames = frames - 1
+        print(f"AI pixel animation: \"{prompt}\" (1 given + {gen_frames} generated)")
+    else:
+        gen_frames = frames
+        print(f"AI pixel animation: \"{prompt}\" ({frames} frames)")
 
-    system_msg = (
-        f"You are a pixel animation artist. Based on the user's description, generate a {frames}-frame "
-        "16x16 pixel animation. Output a JSON array of frames, each frame is 16 rows x 16 columns of "
-        "[R,G,B] color arrays. Structure: [[[R,G,B], ...16...], ...16 rows...] per frame. "
-        "Output ONLY JSON, nothing else. "
-        "Color values 0-255. Use black [0,0,0] for background. "
-        "Animation should be smooth with small changes between adjacent frames."
-    )
+    system_msg = _AI_SYSTEM_ANIM.format(n=gen_frames)
 
-    json_str = _call_ai(system_msg, prompt)
+    user_msg = prompt
+    if first_frame_pixels:
+        pal_str, rows_str = _pixels_to_palette_text(first_frame_pixels)
+        user_msg = (
+            f"{prompt}\n\n"
+            f"Here is the first frame (use the same palette and style):\n"
+            f"palette: {pal_str}\n"
+            f"pixels:\n{rows_str}\n\n"
+            f"Generate {gen_frames} more frames continuing from this frame."
+        )
+
+    print(f"  System: {system_msg[:80]}...")
+    print(f"  Requesting AI...")
+
+    # Per frame: ~1K output + ~1K thinking overhead
+    max_tokens = 16384 + gen_frames * 2048
+    json_str = _call_ai(system_msg, user_msg, provider=provider, max_tokens=max_tokens, thinking=not no_thinking)
     if not json_str:
         print("  AI generation failed")
         return
 
-    all_frames = _parse_json_response(json_str)
-    if all_frames is None:
-        return
-
-    if not isinstance(all_frames, list) or len(all_frames) == 0:
-        print("  Format error: expected frame array")
-        return
-
-    clean_frames = [f for f in (_clean_frame(frame) for frame in all_frames) if f]
-
+    clean_frames = _parse_palette_anim(json_str)
     if not clean_frames:
-        print("  No usable frames")
+        print(f"  Raw response (first 200 chars): {json_str[:200]}")
         return
+
+    # Prepend first frame if provided
+    if first_frame_pixels:
+        clean_frames = [first_frame_pixels] + clean_frames
 
     print(f"  Generated {len(clean_frames)} frames, sending animation...")
+    for i, f in enumerate(clean_frames):
+        _preview_ascii(f, label=f"Frame {i+1}/{len(clean_frames)}")
+    save_path = save or _auto_save_path(prompt, "gif")
+    _save_frames_gif(clean_frames, delay, save_path)
     _send_animation(clean_frames, delay)
 
 
@@ -761,13 +825,34 @@ def preset(name, duration, loop, load_files, restore_cmd):
 def _parse_json_response(json_str):
     """Clean and parse AI-returned JSON."""
     json_str = json_str.strip()
+    # Strip markdown code fences
     if json_str.startswith("```"):
         json_str = json_str.split("\n", 1)[1]
     if json_str.endswith("```"):
         json_str = json_str[:-3]
     json_str = json_str.strip()
+    # Try direct parse first
     try:
         return json.loads(json_str)
+    except json.JSONDecodeError:
+        pass
+    # Try to extract the outermost JSON array
+    start = json_str.find("[")
+    if start == -1:
+        print("  JSON parse failed: no array found")
+        return None
+    depth = 0
+    end = start
+    for i in range(start, len(json_str)):
+        if json_str[i] == "[":
+            depth += 1
+        elif json_str[i] == "]":
+            depth -= 1
+            if depth == 0:
+                end = i + 1
+                break
+    try:
+        return json.loads(json_str[start:end])
     except json.JSONDecodeError as e:
         print(f"  JSON parse failed: {e}")
         return None
@@ -790,7 +875,84 @@ def _clean_frame(frame):
     return clean
 
 
-def _parse_pixel_json(json_str):
+def _expand_palette_frame(palette, rows):
+    """Convert palette-indexed rows to RGB pixel frame."""
+    frame = []
+    for row_str in rows:
+        row = []
+        for ch in str(row_str)[:SCREEN_SIZE]:
+            rgb = palette.get(ch, [0, 0, 0])
+            row.append((max(0, min(255, int(rgb[0]))),
+                        max(0, min(255, int(rgb[1]))),
+                        max(0, min(255, int(rgb[2])))))
+        # Pad if short
+        while len(row) < SCREEN_SIZE:
+            row.append((0, 0, 0))
+        frame.append(row)
+    # Pad rows if short
+    while len(frame) < SCREEN_SIZE:
+        frame.append([(0, 0, 0)] * SCREEN_SIZE)
+    return frame
+
+
+def _parse_palette_image(json_str):
+    """Parse palette-indexed single image. Returns pixel frame or None."""
+    data = _parse_json_response(json_str)
+    if not isinstance(data, dict):
+        return None
+    palette = data.get("palette")
+    rows = data.get("pixels")
+    if not palette or not rows:
+        return None
+    print(f"  Palette: {len(palette)} colors")
+    return _expand_palette_frame(palette, rows)
+
+
+def _parse_palette_anim(json_str):
+    """Parse palette-indexed animation. Returns list of pixel frames or None."""
+    data = _parse_json_response(json_str)
+    if not isinstance(data, dict):
+        return None
+    palette = data.get("palette")
+    frames_data = data.get("frames")
+    if not palette or not frames_data:
+        return None
+    print(f"  Palette: {len(palette)} colors, {len(frames_data)} frames")
+    result = []
+    for rows in frames_data:
+        if isinstance(rows, list) and len(rows) > 0:
+            result.append(_expand_palette_frame(palette, rows))
+    return result if result else None
+
+
+def _pixels_to_palette_text(pixels):
+    """Convert 16x16 RGB pixel frame to palette-indexed text for AI prompt.
+    Returns (palette_str, rows_str) suitable for embedding in a prompt."""
+    keys = "0123456789abcdefghijklmnopqrstuvwxyz"
+    color_to_key = {}
+    palette = {}
+    rows = []
+    for row in pixels:
+        row_str = ""
+        for r, g, b in row:
+            color = (r, g, b)
+            if color not in color_to_key:
+                idx = len(color_to_key)
+                if idx < len(keys):
+                    k = keys[idx]
+                else:
+                    # Too many colors — find nearest existing
+                    k = min(color_to_key, key=lambda c: sum((a - b) ** 2 for a, b in zip(c, color)))
+                    k = color_to_key[k]
+                color_to_key[color] = k
+                palette[k] = list(color)
+            row_str += color_to_key[color]
+        rows.append(row_str)
+    pal_str = ", ".join(f'"{k}": [{v[0]},{v[1]},{v[2]}]' for k, v in sorted(palette.items()))
+    rows_str = "\n".join(f'  "{r}"' for r in rows)
+    return f'{{{pal_str}}}', rows_str
+
+
     """Parse AI-generated single-frame pixel JSON."""
     data = _parse_json_response(json_str)
     if data is None:
@@ -807,20 +969,58 @@ def _parse_pixel_json(json_str):
     return cleaned
 
 
-def _call_ai(system_msg, user_msg):
+def _save_pixels_png(pixels, path, scale=16):
+    """Save 16x16 pixel art to PNG, scaled up for visibility."""
+    from PIL import Image
+    size = len(pixels)
+    img = Image.new("RGB", (size * scale, size * scale))
+    for y in range(size):
+        for x in range(size):
+            r, g, b = pixels[y][x]
+            for dy in range(scale):
+                for dx in range(scale):
+                    img.putpixel((x * scale + dx, y * scale + dy), (r, g, b))
+    img.save(path)
+    print(f"  Saved to {path} ({size * scale}x{size * scale})")
+
+
+def _save_frames_gif(frames, delay_ms, path, scale=16):
+    """Save animation frames as GIF, scaled up for visibility."""
+    from PIL import Image
+    size = len(frames[0])
+    imgs = []
+    for pixels in frames:
+        img = Image.new("RGB", (size * scale, size * scale))
+        for y in range(size):
+            for x in range(size):
+                r, g, b = pixels[y][x]
+                for dy in range(scale):
+                    for dx in range(scale):
+                        img.putpixel((x * scale + dx, y * scale + dy), (r, g, b))
+        imgs.append(img)
+    imgs[0].save(path, save_all=True, append_images=imgs[1:], duration=delay_ms, loop=0)
+    print(f"  Saved to {path} ({len(imgs)} frames, {size * scale}x{size * scale})")
+
+
+def _call_ai(system_msg, user_msg, provider=None, max_tokens=4096, thinking=True):
     """Call AI model based on config.local.json provider setting."""
     config = _load_config()
     ai = config["ai"]
-    provider = ai["provider"]
+    provider = provider or ai["provider"]
+    print(f"  Provider: {provider}")
+    print(f"  Prompt: {user_msg}")
 
     if provider == "claude-cli":
+        print("  Model: claude (CLI default)")
         try:
             result = subprocess.run(
                 ["claude", "--print", "-p", user_msg, "--system-prompt", system_msg],
                 capture_output=True, text=True, timeout=120
             )
             if result.returncode == 0 and result.stdout.strip():
-                return result.stdout.strip()
+                resp = result.stdout.strip()
+                print(f"  Response: {len(resp)} chars")
+                return resp
         except (FileNotFoundError, subprocess.TimeoutExpired):
             pass
         print("  Claude CLI not available. Install: https://claude.ai/code")
@@ -829,21 +1029,83 @@ def _call_ai(system_msg, user_msg):
     elif provider == "anthropic":
         try:
             import anthropic
-            api_key = ai["api_key"] or os.environ.get("ANTHROPIC_API_KEY")
+            api_key = ai["api_key"] or os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")
             if not api_key:
-                print("  No API key: set ai.api_key in config.local.json or ANTHROPIC_API_KEY env")
+                print("  No API key: set ai.api_key in config or ANTHROPIC_API_KEY env")
                 return None
             kwargs = {"api_key": api_key}
-            if ai["api_url"]:
-                kwargs["base_url"] = ai["api_url"]
+            base_url = ai["api_url"] or os.environ.get("ANTHROPIC_BASE_URL")
+            if base_url:
+                kwargs["base_url"] = base_url
+                print(f"  API URL: {base_url}")
             client = anthropic.Anthropic(**kwargs)
-            response = client.messages.create(
-                model=ai["model"] or "claude-sonnet-4-20250514",
-                max_tokens=4096,
-                system=system_msg,
-                messages=[{"role": "user", "content": user_msg}],
-            )
-            return response.content[0].text
+            model = ai["model"] or os.environ.get("ANTHROPIC_MODEL") or "claude-sonnet-4-20250514"
+            print(f"  Model: {model}")
+            create_kwargs = {
+                "model": model,
+                "max_tokens": max_tokens,
+                "system": system_msg,
+                "messages": [{"role": "user", "content": user_msg}],
+            }
+            if thinking:
+                thinking_budget = max(max_tokens - 4096, 1024)
+                create_kwargs["thinking"] = {"type": "enabled", "budget_tokens": thinking_budget}
+                print(f"  Max tokens: {max_tokens} (thinking {thinking_budget} + output {max_tokens - thinking_budget})")
+            else:
+                print(f"  Max tokens: {max_tokens}")
+            response = client.messages.create(**create_kwargs, stream=True)
+            # Stream response with spinner
+            resp_parts = []
+            thinking_chars = 0
+            input_tokens = 0
+            output_tokens = 0
+            stop = None
+            current_type = None
+            spin_chars = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+            spin_idx = 0
+            import sys
+            for event in response:
+                if event.type == "message_start":
+                    input_tokens = getattr(event.message.usage, "input_tokens", 0)
+                elif event.type == "content_block_start":
+                    current_type = event.content_block.type
+                    if current_type == "thinking":
+                        sys.stdout.write(f"\r  {spin_chars[0]} Thinking...")
+                        sys.stdout.flush()
+                    elif current_type == "text":
+                        sys.stdout.write(f"\r  {spin_chars[0]} Generating...    ")
+                        sys.stdout.flush()
+                        spin_idx = 0
+                elif event.type == "content_block_delta":
+                    spin_idx = (spin_idx + 1) % len(spin_chars)
+                    if current_type == "thinking":
+                        t = getattr(event.delta, "thinking", "")
+                        if t:
+                            thinking_chars += len(t)
+                        sys.stdout.write(f"\r  {spin_chars[spin_idx]} Thinking...")
+                        sys.stdout.flush()
+                    elif current_type == "text":
+                        text = getattr(event.delta, "text", "")
+                        if text:
+                            resp_parts.append(text)
+                        sys.stdout.write(f"\r  {spin_chars[spin_idx]} Generating...")
+                        sys.stdout.flush()
+                elif event.type == "message_delta":
+                    stop = event.delta.stop_reason
+                    output_tokens = getattr(event.usage, "output_tokens", 0)
+            sys.stdout.write("\r                        \r")
+            sys.stdout.flush()
+            resp = "".join(resp_parts)
+            if not resp:
+                print("  ERROR: no text in response")
+                return None
+            usage_str = f"{input_tokens}in/{output_tokens}out"
+            if thinking_chars:
+                usage_str += f", thinking ~{thinking_chars} chars"
+            print(f"  Response: {len(resp)} chars, stop: {stop}, usage: {usage_str}")
+            if stop == "max_tokens":
+                print("  WARNING: response truncated (max_tokens reached)")
+            return resp
         except ImportError:
             print("  anthropic SDK not installed: pip3 install anthropic")
             return None
@@ -853,20 +1115,90 @@ def _call_ai(system_msg, user_msg):
             import openai
             api_key = ai["api_key"] or os.environ.get("OPENAI_API_KEY")
             if not api_key:
-                print("  No API key: set ai.api_key in config.local.json or OPENAI_API_KEY env")
+                print("  No API key: set ai.api_key in config or OPENAI_API_KEY env")
                 return None
             kwargs = {"api_key": api_key}
-            if ai["api_url"]:
-                kwargs["base_url"] = ai["api_url"]
+            base_url = ai["api_url"] or os.environ.get("OPENAI_BASE_URL")
+            if base_url:
+                kwargs["base_url"] = base_url
+                print(f"  API URL: {base_url}")
             client = openai.OpenAI(**kwargs)
-            response = client.chat.completions.create(
-                model=ai["model"] or "gpt-4o",
-                messages=[
+            model = ai["model"] or os.environ.get("OPENAI_MODEL") or "gpt-4o"
+            print(f"  Model: {model}")
+            create_kwargs = {
+                "model": model,
+                "messages": [
                     {"role": "system", "content": system_msg},
                     {"role": "user", "content": user_msg},
                 ],
-            )
-            return response.choices[0].message.content
+            }
+            if thinking:
+                create_kwargs["max_completion_tokens"] = max_tokens
+                create_kwargs["reasoning_effort"] = "high"
+                print(f"  Max tokens: {max_tokens} (thinking + output)")
+            else:
+                create_kwargs["max_tokens"] = max_tokens
+                print(f"  Max tokens: {max_tokens}")
+
+            import sys, time, threading
+            resp_parts = []
+            reasoning_parts = []
+            input_tokens = 0
+            output_tokens = 0
+            reasoning_tokens = 0
+            stop = None
+
+            # Background spinner — start BEFORE API call because create() may block during thinking
+            spin_chars = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+            spin_state = {"phase": "Thinking" if thinking else "Generating", "done": False}
+            def _spin():
+                idx = 0
+                while not spin_state["done"]:
+                    sys.stdout.write(f"\r  {spin_chars[idx]} {spin_state['phase']}...")
+                    sys.stdout.flush()
+                    idx = (idx + 1) % len(spin_chars)
+                    time.sleep(0.15)
+            t = threading.Thread(target=_spin, daemon=True)
+            t.start()
+
+            response = client.chat.completions.create(**create_kwargs, stream=True, stream_options={"include_usage": True})
+            for chunk in response:
+                if chunk.usage:
+                    input_tokens = chunk.usage.prompt_tokens or 0
+                    output_tokens = chunk.usage.completion_tokens or 0
+                    details = getattr(chunk.usage, "completion_tokens_details", None)
+                    if details:
+                        reasoning_tokens = getattr(details, "reasoning_tokens", 0) or 0
+                if not chunk.choices:
+                    continue
+                delta = chunk.choices[0].delta
+                finish = chunk.choices[0].finish_reason
+                if finish:
+                    stop = finish
+                if delta and getattr(delta, "reasoning_content", None):
+                    spin_state["phase"] = "Thinking"
+                    reasoning_parts.append(delta.reasoning_content)
+                elif delta and delta.content:
+                    spin_state["phase"] = "Generating"
+                    resp_parts.append(delta.content)
+
+            spin_state["done"] = True
+            t.join(timeout=1)
+            sys.stdout.write("\r                        \r")
+            sys.stdout.flush()
+            resp = "".join(resp_parts)
+            if not resp:
+                print("  ERROR: no text in response")
+                return None
+            usage_str = f"{input_tokens}in/{output_tokens}out"
+            if reasoning_tokens:
+                usage_str += f"/{reasoning_tokens}think"
+            elif reasoning_parts:
+                usage_str += f", thinking ~{sum(len(p) for p in reasoning_parts)} chars"
+            print(f"  Response: {len(resp)} chars, stop: {stop}, usage: {usage_str}")
+            if stop == "length":
+                print("  WARNING: response truncated (max_tokens reached)")
+            return resp
         except ImportError:
             print("  openai SDK not installed: pip3 install openai")
             return None
@@ -877,8 +1209,10 @@ def _call_ai(system_msg, user_msg):
         return None
 
 
-def _preview_ascii(pixels):
-    """Write ASCII preview of pixel art to log file."""
+def _preview_ascii(pixels, label=None):
+    """Print ASCII preview of pixel art."""
+    if label:
+        print(f"  [{label}]")
     for row in pixels:
         line = ""
         for r, g, b in row:
@@ -891,7 +1225,7 @@ def _preview_ascii(pixels):
                 line += ".."
             else:
                 line += "  "
-        _log(f"  {line}")
+        print(f"  {line}")
 
 
 # --- Frame Generation (shared by prepare and direct commands) ---
@@ -899,9 +1233,15 @@ def _preview_ascii(pixels):
 STAGE_FILE = os.path.join(SCRIPT_DIR, ".tivoo_stage.json")
 
 
-def _load_font(size=16, name=None):
-    """Load pixel font by name. Default: tries all fonts in order."""
+def _load_font(size=16, name=None, font_file=None):
+    """Load pixel font by name or file path. Default: tries all fonts in order."""
     from PIL import ImageFont
+    if font_file:
+        try:
+            return ImageFont.truetype(font_file, size)
+        except Exception as e:
+            print(f"Cannot load font file '{font_file}': {e}")
+            sys.exit(1)
     if name:
         paths = FONTS.get(name)
         if not paths:
@@ -951,14 +1291,14 @@ def _gen_static_frames(pixels, duration_ms):
     return [pixels], [duration_ms]
 
 
-def _gen_text_frames(text, color="white", bg="black", speed=100, step=2, font_size=None, font_name=None):
+def _gen_text_frames(text, color="white", bg="black", speed=100, step=2, font_size=None, font_name=None, font_file=None):
     """Generate scrolling text frames. Returns (frames, delays)."""
     from PIL import Image, ImageDraw
     fg = parse_color(color)
     bg_rgb = parse_color(bg)
     if font_size is None:
         font_size = _auto_font_size(text)
-    font = _load_font(font_size, font_name)
+    font = _load_font(font_size, font_name, font_file=font_file)
 
     tmp = Image.new("1", (1, 1))
     bbox = ImageDraw.Draw(tmp).textbbox((0, 0), text, font=font)
@@ -1040,13 +1380,14 @@ def prepare_preset(name, duration, load_files, output):
 @click.option("--step", default=2, type=click.IntRange(1, 8), help="Pixels per step")
 @click.option("--size", default=None, type=click.IntRange(8, 16), help="Font size (auto: 9=EN, 12=CJK)")
 @click.option("--font", default=None, type=click.Choice(FONT_NAMES, case_sensitive=False), help="Font name")
+@click.option("--font-file", default=None, type=click.Path(exists=True), help="Custom font file path")
 @click.option("-o", "--output", default=None, help="Stage file path")
-def prepare_text(text, color, bg, speed, step, size, font, output):
+def prepare_text(text, color, bg, speed, step, size, font, font_file, output):
     """Append scrolling text frames."""
     path = output or STAGE_FILE
     stage = _load_stage(path)
 
-    frames, delays = _gen_text_frames(text, color, bg, speed, step, font_size=size, font_name=font)
+    frames, delays = _gen_text_frames(text, color, bg, speed, step, font_size=size, font_name=font, font_file=font_file)
 
     stage["frames"].extend(frames)
     stage["delays"].extend(delays)

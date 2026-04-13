@@ -5,13 +5,14 @@ Control a [Divoom Tivoo](https://divoom.com) 16x16 pixel screen from macOS via B
 ## Features
 
 - **Brightness, clock, light effects** — basic device control
-- **Images** — send any PNG/JPG/GIF, auto-resized to 16x16
-- **Scrolling text** — with Unifont pixel font, supports CJK characters, configurable font/size/speed
+- **Images** — send any PNG/JPG/GIF, auto-resized to 16x16 (configurable resample algorithm)
+- **Scrolling text** — with Unifont pixel font, supports CJK characters, configurable font/size/speed, custom font file
 - **Animations** — from image directories or GIF files
-- **39 animated presets** — pixel art with multi-frame animations (heart, weather, animals, workflow icons, etc.)
-- **13 emotion presets** — animated face expressions (happy, sad, angry, love, etc.)
-- **Custom preset loading** — load external preset files via `--load`
-- **AI pixel art** — generate pixel art via Claude CLI or Anthropic API
+- **33 animated presets** — pixel art with multi-frame animations (heart, weather, animals, workflow icons, etc.)
+- **24 emotion presets** — animated face expressions (happy, sad, angry, love, workflow emotions, etc.)
+- **Character presets** — Claude (orange logo), Luna (magic girl) emotion sets via `--load`
+- **AI pixel art** — generate pixel art via Claude CLI, Anthropic API, or OpenAI API with extended thinking
+- **AI animation** — generate multi-frame animations, supports first-frame input
 - **Compose animations** — stage multiple segments (preset + text + image) and send as one animation
 - **Auto-restore clock** — display content for a set duration/loops, then switch back to clock mode
 - **Claude Code hooks** — show Tivoo animations on Claude Code events (task done, errors, notifications)
@@ -29,6 +30,10 @@ Control a [Divoom Tivoo](https://divoom.com) 16x16 pixel screen from macOS via B
 # Install dependencies
 pip3 install click Pillow
 
+# Optional: AI pixel art providers
+pip3 install anthropic      # Anthropic API
+pip3 install openai         # OpenAI API
+
 # Compile Bluetooth bridge (one-time)
 clang -framework Foundation -framework IOBluetooth -o tivoo_cmd tivoo_cmd.m -fobjc-arc
 
@@ -41,7 +46,8 @@ python3 tivoo_macos.py image photo.png
 
 # Emotion presets
 python3 tivoo_macos.py preset happy
-python3 tivoo_macos.py preset happy --load emotion_presets_luna.py
+python3 tivoo_macos.py preset happy --load luna
+python3 tivoo_macos.py preset happy --load claude
 
 # Compose multi-segment animation
 python3 tivoo_macos.py prepare clear
@@ -60,11 +66,12 @@ Run `python3 tivoo_macos.py -h` for full help. Every subcommand supports `-h`.
 | `clock [style]` | Clock mode (styles 0-6, options: --calendar, --weather, --color) |
 | `light <color>` | Light effect (color name or #RRGGBB) |
 | `off` / `on` | Turn screen off/on |
-| `image <path>` | Display image (--duration 12s, then restore clock) |
-| `text <text>` | Scrolling text (--loop, --speed, --size, --font, --step) |
-| `anim <path>` | Animation from directory or GIF (--loop 3, --delay) |
+| `image <path>` | Display image (--duration 12s, --resample) |
+| `text <text>` | Scrolling text (--loop, --speed, --size, --font, --font-file, --step) |
+| `anim <path>` | Animation from directory or GIF (--loop, --delay) |
 | `preset [name]` | Preset pixel art (--duration 12s, --load; no args = list all) |
-| `ai <prompt>` | AI-generated pixel art |
+| `ai <prompt>` | AI-generated pixel art (--provider, --no-thinking) |
+| `ai-anim <prompt>` | AI-generated animation (--frames, --first-frame, --provider, --no-thinking) |
 | `prepare <sub>` | Stage animation: `preset`, `text`, `image`, `clear`, `info` |
 | `send [file]` | Send staged animation (--loop 3, --clean) |
 | `raw <hex...>` | Send raw Bluetooth command |
@@ -88,14 +95,14 @@ The `skills/tivoo/` directory contains a [Claude Code](https://claude.ai/code) s
 The `hooks/` directory contains a configuration script to show Tivoo animations on Claude Code events. See [hooks/README.md](hooks/README.md) for details.
 
 ```bash
-# Apply default hooks (6 events: Stop, StopFailure, Notification, PermissionRequest, Elicitation, TeammateIdle)
-./hooks/configure-hooks.sh
+# Apply default hooks (7 events: Stop, StopFailure, Notification, PermissionRequest, Elicitation, TeammateIdle, UserPromptSubmit)
+./hooks/configure-claude-hooks.sh
 
 # English TTS
-./hooks/configure-hooks.sh --lang en
+./hooks/configure-claude-hooks.sh --lang en
 
 # Enable all 13 events
-./hooks/configure-hooks.sh --all
+./hooks/configure-claude-hooks.sh --all
 ```
 
 ## Protocol

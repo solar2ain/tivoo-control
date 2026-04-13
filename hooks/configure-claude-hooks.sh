@@ -34,7 +34,7 @@ HOOK_MAP=(
   "PermissionRequest:question:5:::1"
   "Elicitation:question:5:::1"
   "TeammateIdle:standby:5:::1"
-  # Progress feedback (opt-in)
+  # Progress feedback (UserPromptSubmit default, rest opt-in)
   "UserPromptSubmit:working:2:::1"
   "TaskCreated:tasklist:2:::0"
   "TaskCompleted:taskdone:2:::0"
